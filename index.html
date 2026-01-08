@@ -2,9 +2,26 @@
 <html>
 <head>
   <title>The Streak</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <h1>THE STREAK IS LIVE 🚀</h1>
-  <p>If you see this, Firebase Hosting works.</p>
+
+<div class="container">
+  <h2>PMO Streak</h2>
+
+  <div id="auth-section">
+    <input id="email" type="email" placeholder="Email">
+    <input id="password" type="password" placeholder="Password">
+    <button id="signupBtn">Sign Up</button>
+    <button id="loginBtn">Log In</button>
+    <p id="authMessage"></p>
+  </div>
+
+  <div id="app-section" style="display:none;">
+    <p id="streakDisplay">Loading…</p>
+    <button id="markBtn">Mark Today</button>
+  </div>
+</div>
+
 </body>
 </html>
