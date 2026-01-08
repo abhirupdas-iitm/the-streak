@@ -1,27 +1,143 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8" />
   <title>The Streak</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
 
 <div class="container">
   <h2>PMO Streak</h2>
 
+  <!-- AUTH -->
   <div id="auth-section">
-    <input id="email" type="email" placeholder="Email">
-    <input id="password" type="password" placeholder="Password">
+    <input id="email" type="email" placeholder="Email" />
+    <input id="password" type="password" placeholder="Password" />
     <button id="signupBtn">Sign Up</button>
     <button id="loginBtn">Log In</button>
     <p id="authMessage"></p>
   </div>
 
+  <!-- APP -->
   <div id="app-section" style="display:none;">
     <p id="streakDisplay">Loading…</p>
     <button id="markBtn">Mark Today</button>
   </div>
 </div>
+
+<!-- Firebase SDKs (v8) -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+<script>
+  
+  const firebaseConfig = {
+    apiKey: "AIzaSyANFF4TkIpc3vB3_jwA5xK6rh4EryigVVI",
+    authDomain: "the-streak2.firebaseapp.com",
+    projectId: "the-streak2",
+    storageBucket: "the-streak2.firebasestorage.app",
+    messagingSenderId: "377658825110",
+    appId: "1:377658825110:web:b7b3c7b407af8a9beda5b7",
+    measurementId: "G-JJ0HQ9LX0S"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+
+  // DOM bindings (important)
+  const emailInput = document.getElementById("email");
+  const passwordInput = document.getElementById("password");
+  const signupBtn = document.getElementById("signupBtn");
+  const loginBtn = document.getElementById("loginBtn");
+  const authMessage = document.getElementById("authMessage");
+  const authSection = document.getElementById("auth-section");
+  const appSection = document.getElementById("app-section");
+  const streakDisplay = document.getElementById("streakDisplay");
+  const markBtn = document.getElementById("markBtn");
+</script>
+
+<script>
+  signupBtn.onclick = async () => {
+    try {
+      await auth.createUserWithEmailAndPassword(
+        emailInput.value,
+        passwordInput.value
+      );
+      authMessage.innerText = "Signup successful!";
+    } catch (e) {
+      authMessage.innerText = e.message;
+    }
+  };
+
+  loginBtn.onclick = async () => {
+    try {
+      await auth.signInWithEmailAndPassword(
+        emailInput.value,
+        passwordInput.value
+      );
+      authMessage.innerText = "Login successful!";
+    } catch (e) {
+      authMessage.innerText = e.message;
+    }
+  };
+
+  auth.onAuthStateChanged(user => {
+    if (!user) return;
+
+    authSection.style.display = "none";
+    appSection.style.display = "block";
+    loadStreak(user.uid);
+  });
+</script>
+
+<script>
+  async function loadStreak(uid) {
+    const ref = db.collection("users").doc(uid);
+    const snap = await ref.get();
+
+    if (!snap.exists) {
+      await ref.set({ streak: 0, lastCheck: null });
+      streakDisplay.innerText = "Current streak: 0 days";
+      return;
+    }
+
+    streakDisplay.innerText =
+      "Current streak: " + snap.data().streak + " days";
+  }
+
+  markBtn.onclick = async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const ref = db.collection("users").doc(user.uid);
+    const snap = await ref.get();
+    const data = snap.data();
+
+    const today = new Date().toDateString();
+    if (data.lastCheck === today) {
+      alert("Already marked today!");
+      return;
+    }
+
+    const yesterday = new Date(Date.now() - 86400000).toDateString();
+    const newStreak =
+      data.lastCheck === yesterday || data.lastCheck === null
+        ? data.streak + 1
+        : 1;
+
+    await ref.update({
+      streak: newStreak,
+      lastCheck: today
+    });
+
+    streakDisplay.innerText =
+      "Current streak: " + newStreak + " days";
+  };
+</script>
 
 </body>
 </html>
