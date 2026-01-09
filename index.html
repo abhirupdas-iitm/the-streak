@@ -161,6 +161,41 @@
       "Current streak: " + newStreak + " days";
   };
 </script>
+<script>
+  const reflectBtn = document.getElementById("reflectBtn");
+  const modal = document.getElementById("reflectionModal");
+  const saveBtn = document.getElementById("saveReflectionBtn");
+  const reflectionText = document.getElementById("reflectionText");
+  const reflectionDate = document.getElementById("reflectionDate");
+
+  function getTodayKey() {
+    const today = new Date();
+    return today.toISOString().split("T")[0]; // YYYY-MM-DD
+  }
+
+  function openReflection() {
+    const todayKey = getTodayKey();
+    reflectionDate.innerText = "Date: " + todayKey;
+
+    const savedNote = localStorage.getItem("reflection-" + todayKey);
+    reflectionText.value = savedNote ? savedNote : "";
+
+    modal.style.display = "flex";
+  }
+
+  function saveReflection() {
+    const todayKey = getTodayKey();
+    localStorage.setItem(
+      "reflection-" + todayKey,
+      reflectionText.value
+    );
+
+    modal.style.display = "none";
+  }
+
+  reflectBtn.onclick = openReflection;
+  saveBtn.onclick = saveReflection;
+</script>
 
 </body>
 </html>
