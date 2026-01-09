@@ -99,3 +99,69 @@ button:hover {
   margin-top: 14px;
   width: 100%;
 }
+/* Calendar button */
+.calendar-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: none;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+  color: #00ffae;
+}
+
+/* Calendar overlay */
+#calendarOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+/* Calendar container */
+.calendar-box {
+  background: #111;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(0,255,170,0.3);
+}
+
+/* Grid */
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 40px);
+  gap: 10px;
+}
+
+/* Day cell */
+.calendar-day {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #aaa;
+}
+
+/* Past (before registration) */
+.calendar-day.past {
+  color: #555;
+  cursor: default;
+}
+
+/* Active streak days */
+.calendar-day.active {
+  border: 2px solid #00ffae;
+  color: #00ffae;
+}
+
+/* Hover */
+.calendar-day.active:hover {
+  background: rgba(0,255,170,0.15);
+}
