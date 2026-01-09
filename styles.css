@@ -49,3 +49,53 @@ button {
 button:hover {
   opacity: 0.9;
 }
+/* Action buttons grouping */
+.actions {
+  margin-top: 16px;
+}
+
+/* Reflection modal overlay */
+#reflectionModal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+/* Modal box */
+.modal-box {
+  background: #111;
+  width: 90%;
+  max-width: 400px;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 0 25px rgba(0, 255, 150, 0.25);
+  text-align: center;
+}
+
+/* Modal title */
+.modal-box h3 {
+  margin-bottom: 12px;
+  color: #00ff99;
+}
+
+/* Reflection textarea */
+#reflectionText {
+  width: 100%;
+  padding: 10px;
+  background: #1a1a1a;
+  color: #e8e8e8;
+  border-radius: 6px;
+  border: none;
+  outline: none;
+  resize: none;
+}
+
+/* Save button spacing */
+#saveReflectionBtn {
+  margin-top: 14px;
+  width: 100%;
+}
