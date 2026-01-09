@@ -21,9 +21,32 @@
 
   <!-- APP -->
   <div id="app-section" style="display:none;">
+
     <p id="streakDisplay">Loading…</p>
-    <button id="markBtn">Mark Today</button>
+
+    <div class="actions">
+      <button id="markBtn">Mark Today</button>
+      <button id="reflectBtn">Reflection</button>
+    </div>
+  
+</div>
+  
+  <!-- REFLECTION MODAL (hidden by default) -->
+  <div id="reflectionModal" style="display:none;">
+  
+    <div class="modal-box">
+      <h3 id="reflectionDate">Date</h3>
+  
+      <textarea
+        id="reflectionText"
+        placeholder="What do you want to write about today?"
+        rows="6"
+      ></textarea>
+  
+      <button id="saveReflectionBtn">Save</button>
+    </div>
   </div>
+
 </div>
 
 <!-- Firebase SDKs (v8) -->
