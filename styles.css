@@ -1,5 +1,51 @@
+/* Reset browser weird spacing */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Page base */
 body {
+  min-height: 100vh;
   background: #111;
   color: #00ff99;
   font-family: Arial, sans-serif;
+
+  /* CENTERING LOGIC */
+  display: flex;
+  justify-content: center;   /* horizontal center */
+  align-items: flex-start;   /* stay near top, not vertical center */
+}
+
+/* Main app container */
+.container {
+  margin-top: 80px;          /* space from top */
+  width: 100%;
+  max-width: 420px;          /* keeps UI compact */
+  text-align: center;        /* centers text + buttons */
+}
+
+/* Inputs */
+input {
+  width: 100%;
+  padding: 10px;
+  margin: 8px 0;
+  border-radius: 6px;
+  border: none;
+  outline: none;
+}
+
+/* Buttons */
+button {
+  margin: 8px 4px;
+  padding: 10px 14px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+button:hover {
+  opacity: 0.9;
 }
