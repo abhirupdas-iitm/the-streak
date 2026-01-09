@@ -21,32 +21,28 @@
 
   <!-- APP -->
   <div id="app-section" style="display:none;">
-
     <p id="streakDisplay">Loading…</p>
 
     <div class="actions">
       <button id="markBtn">Mark Today</button>
       <button id="reflectBtn">Reflection</button>
     </div>
-  
-</div>
-  
-  <!-- REFLECTION MODAL (hidden by default) -->
-  <div id="reflectionModal" style="display:none;">
-  
-    <div class="modal-box">
-      <h3 id="reflectionDate">Date</h3>
-  
-      <textarea
-        id="reflectionText"
-        placeholder="What do you want to write about today?"
-        rows="6"
-      ></textarea>
-  
-      <button id="saveReflectionBtn">Save</button>
-    </div>
   </div>
+</div>
 
+<!-- REFLECTION MODAL (hidden by default, OUTSIDE container) -->
+<div id="reflectionModal" style="display:none;">
+  <div class="modal-box">
+    <h3 id="reflectionDate">Date</h3>
+
+    <textarea
+      id="reflectionText"
+      placeholder="What do you want to write about today?"
+      rows="6"
+    ></textarea>
+
+    <button id="saveReflectionBtn">Save</button>
+  </div>
 </div>
 
 <!-- Firebase SDKs (v8) -->
@@ -55,7 +51,6 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
 <script>
-  
   const firebaseConfig = {
     apiKey: "AIzaSyANFF4TkIpc3vB3_jwA5xK6rh4EryigVVI",
     authDomain: "the-streak2.firebaseapp.com",
@@ -71,7 +66,6 @@
   const auth = firebase.auth();
   const db = firebase.firestore();
 
-  // DOM bindings (important)
   const emailInput = document.getElementById("email");
   const passwordInput = document.getElementById("password");
   const signupBtn = document.getElementById("signupBtn");
@@ -161,7 +155,11 @@
       "Current streak: " + newStreak + " days";
   };
 </script>
+
 <script>
+  let originalReflectionText = "";
+  let hasUnsavedChanges = false;
+
   const reflectBtn = document.getElementById("reflectBtn");
   const modal = document.getElementById("reflectionModal");
   const saveBtn = document.getElementById("saveReflectionBtn");
@@ -169,9 +167,12 @@
   const reflectionDate = document.getElementById("reflectionDate");
 
   function getTodayKey() {
-    const today = new Date();
-    return today.toISOString().split("T")[0]; // YYYY-MM-DD
+    return new Date().toISOString().split("T")[0];
   }
+
+  reflectionText.addEventListener("input", () => {
+    hasUnsavedChanges = reflectionText.value !== originalReflectionText;
+  });
 
   function openReflection() {
     const todayKey = getTodayKey();
@@ -180,21 +181,41 @@
     const savedNote = localStorage.getItem("reflection-" + todayKey);
     reflectionText.value = savedNote ? savedNote : "";
 
+    originalReflectionText = reflectionText.value;
+    hasUnsavedChanges = false;
+
     modal.style.display = "flex";
   }
 
   function saveReflection() {
     const todayKey = getTodayKey();
-    localStorage.setItem(
-      "reflection-" + todayKey,
-      reflectionText.value
-    );
+    localStorage.setItem("reflection-" + todayKey, reflectionText.value);
 
+    originalReflectionText = reflectionText.value;
+    hasUnsavedChanges = false;
     modal.style.display = "none";
   }
 
   reflectBtn.onclick = openReflection;
   saveBtn.onclick = saveReflection;
+
+  modal.addEventListener("click", (e) => {
+    if (e.target !== modal) return;
+
+    if (!hasUnsavedChanges) {
+      modal.style.display = "none";
+      return;
+    }
+
+    const confirmClose = confirm(
+      "You have unsaved changes. Close without saving?"
+    );
+
+    if (confirmClose) {
+      hasUnsavedChanges = false;
+      modal.style.display = "none";
+    }
+  });
 </script>
 
 </body>
