@@ -36,10 +36,9 @@
 
     <div class="modal-header">
       <h3 id="reflectionDate">Date</h3>
-      <button id="calendarBtn" class="calendar-btn" title="Open calendar">📅</button>
+      <button id="calendarBtn" class="calendar-btn">📅</button>
     </div>
 
-    <!-- CALENDAR -->
     <div id="calendarOverlay" style="display:none;">
       <div class="calendar-box">
         <div class="calendar-grid" id="calendarGrid"></div>
@@ -122,12 +121,7 @@
     const snap = await ref.get();
 
     if (!snap.exists) {
-      const todayKey = new Date().toISOString().split("T")[0];
-      await ref.set({
-        streak: 0,
-        lastCheck: null,
-        startDate: todayKey
-      });
+      await ref.set({ streak: 0, lastCheck: null });
     }
 
     loadStreak(user.uid);
@@ -136,9 +130,7 @@
 
 <script>
   async function loadStreak(uid) {
-    const ref = db.collection("users").doc(uid);
-    const snap = await ref.get();
-
+    const snap = await db.collection("users").doc(uid).get();
     streakDisplay.innerText =
       "Current streak: " + snap.data().streak + " days";
   }
@@ -151,21 +143,23 @@
     const snap = await ref.get();
     const data = snap.data();
 
-    const today = new Date().toDateString();
-    if (data.lastCheck === today) {
+    const todayStr = new Date().toDateString();
+    if (data.lastCheck === todayStr) {
       alert("Already marked today!");
       return;
     }
 
-    const yesterday = new Date(Date.now() - 86400000).toDateString();
+    const yesterdayStr =
+      new Date(Date.now() - 86400000).toDateString();
+
     const newStreak =
-      data.lastCheck === yesterday || data.lastCheck === null
+      data.lastCheck === yesterdayStr || data.lastCheck === null
         ? data.streak + 1
         : 1;
 
     await ref.update({
       streak: newStreak,
-      lastCheck: today
+      lastCheck: todayStr
     });
 
     streakDisplay.innerText =
@@ -174,9 +168,9 @@
 </script>
 
 <script>
+  let activeDateKey = "";
   let originalReflectionText = "";
   let hasUnsavedChanges = false;
-  let activeDateKey = "";
 
   const reflectBtn = document.getElementById("reflectBtn");
   const modal = document.getElementById("reflectionModal");
@@ -187,27 +181,12 @@
   const calendarOverlay = document.getElementById("calendarOverlay");
   const calendarGrid = document.getElementById("calendarGrid");
 
-  function openReflectionForDate(dateKey) {
-    activeDateKey = dateKey;
-    reflectionDate.innerText = "Date: " + dateKey;
-
-    const saved = localStorage.getItem("reflection-" + dateKey);
-    reflectionText.value = saved || "";
-
-    originalReflectionText = reflectionText.value;
-    hasUnsavedChanges = false;
-
-    modal.style.display = "flex";
-  }
-
-  function saveReflection() {
-    localStorage.setItem(
-      "reflection-" + activeDateKey,
-      reflectionText.value
+  function localDateKey(d) {
+    return (
+      d.getFullYear() + "-" +
+      String(d.getMonth() + 1).padStart(2, "0") + "-" +
+      String(d.getDate()).padStart(2, "0")
     );
-    originalReflectionText = reflectionText.value;
-    hasUnsavedChanges = false;
-    modal.style.display = "none";
   }
 
   async function renderCalendar() {
@@ -217,28 +196,32 @@
     if (!user) return;
 
     const snap = await db.collection("users").doc(user.uid).get();
-    const startDate = new Date(snap.data().startDate + "T00:00:00");
+    const streak = snap.data().streak;
+
     const today = new Date();
     today.setHours(0,0,0,0);
+
+    const startDate = new Date(today);
+    startDate.setDate(today.getDate() - streak + 1);
 
     const year = today.getFullYear();
     const month = today.getMonth();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
 
     for (let day = 1; day <= daysInMonth; day++) {
-      const cellDate = new Date(year, month, day);
-      const key = cellDate.toISOString().split("T")[0];
+      const d = new Date(year, month, day);
+      d.setHours(0,0,0,0);
 
       const cell = document.createElement("div");
       cell.innerText = day;
       cell.classList.add("calendar-day");
 
-      if (cellDate < startDate || cellDate > today) {
+      if (d < startDate || d > today) {
         cell.classList.add("past");
       } else {
         cell.classList.add("active");
         cell.onclick = () => {
-          openReflectionForDate(key);
+          openReflectionForDate(localDateKey(d));
           calendarOverlay.style.display = "none";
         };
       }
@@ -247,30 +230,41 @@
     }
   }
 
-  reflectBtn.onclick = () => {
-    const todayKey = new Date().toISOString().split("T")[0];
-    openReflectionForDate(todayKey);
-  };
+  function openReflectionForDate(key) {
+    activeDateKey = key;
+    reflectionDate.innerText = "Date: " + key;
+    reflectionText.value =
+      localStorage.getItem("reflection-" + key) || "";
+    originalReflectionText = reflectionText.value;
+    hasUnsavedChanges = false;
+    modal.style.display = "flex";
+  }
 
-  saveBtn.onclick = saveReflection;
+  reflectBtn.onclick = () => {
+    openReflectionForDate(localDateKey(new Date()));
+  };
 
   calendarBtn.onclick = () => {
     renderCalendar();
     calendarOverlay.style.display = "flex";
   };
 
-  modal.addEventListener("click", (e) => {
+  saveBtn.onclick = () => {
+    localStorage.setItem(
+      "reflection-" + activeDateKey,
+      reflectionText.value
+    );
+    modal.style.display = "none";
+  };
+
+  modal.addEventListener("click", e => {
     if (e.target !== modal) return;
+    if (!hasUnsavedChanges) modal.style.display = "none";
+  });
 
-    if (!hasUnsavedChanges) {
-      modal.style.display = "none";
-      return;
-    }
-
-    if (confirm("You have unsaved changes. Close without saving?")) {
-      hasUnsavedChanges = false;
-      modal.style.display = "none";
-    }
+  reflectionText.addEventListener("input", () => {
+    hasUnsavedChanges =
+      reflectionText.value !== originalReflectionText;
   });
 </script>
 
