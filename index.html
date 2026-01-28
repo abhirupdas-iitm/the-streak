@@ -14,8 +14,11 @@
   <div id="auth-section">
     <input id="email" type="email" placeholder="Email" />
     <input id="password" type="password" placeholder="Password" />
+
     <button id="signupBtn">Sign Up</button>
     <button id="loginBtn">Log In</button>
+    <button id="forgotBtn">Forgot Password?</button>
+
     <p id="authMessage"></p>
   </div>
 
@@ -79,11 +82,30 @@
   const passwordInput = document.getElementById("password");
   const signupBtn = document.getElementById("signupBtn");
   const loginBtn = document.getElementById("loginBtn");
+  const forgotBtn = document.getElementById("forgotBtn");
+
   const authMessage = document.getElementById("authMessage");
   const authSection = document.getElementById("auth-section");
   const appSection = document.getElementById("app-section");
   const streakDisplay = document.getElementById("streakDisplay");
   const markBtn = document.getElementById("markBtn");
+
+  function friendlyAuthError(error) {
+    switch (error.code) {
+      case "auth/user-not-found":
+        return "No account exists with this email.";
+      case "auth/wrong-password":
+        return "Incorrect password. Please try again.";
+      case "auth/email-already-in-use":
+        return "This email is already registered. Please log in.";
+      case "auth/invalid-email":
+        return "Please enter a valid email address.";
+      case "auth/weak-password":
+        return "Password should be at least 6 characters.";
+      default:
+        return "Authentication error. Please try again.";
+    }
+  }
 </script>
 
 <script>
@@ -95,7 +117,7 @@
       );
       authMessage.innerText = "Signup successful!";
     } catch (e) {
-      authMessage.innerText = e.message;
+      authMessage.innerText = friendlyAuthError(e);
     }
   };
 
@@ -107,7 +129,24 @@
       );
       authMessage.innerText = "Login successful!";
     } catch (e) {
-      authMessage.innerText = e.message;
+      authMessage.innerText = friendlyAuthError(e);
+    }
+  };
+
+  forgotBtn.onclick = async () => {
+    const email = emailInput.value.trim();
+
+    if (!email) {
+      authMessage.innerText = "Please enter your email first.";
+      return;
+    }
+
+    try {
+      await auth.sendPasswordResetEmail(email);
+      authMessage.innerText =
+        "Password reset email sent. Check your inbox.";
+    } catch (e) {
+      authMessage.innerText = friendlyAuthError(e);
     }
   };
 
