@@ -59,7 +59,6 @@
   </div>
 </div>
 
-<!-- Firebase SDKs -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
@@ -91,33 +90,22 @@
   const appSection = document.getElementById("app-section");
   const streakDisplay = document.getElementById("streakDisplay");
   const markBtn = document.getElementById("markBtn");
+  const reflectBtn = document.getElementById("reflectBtn");
 
   function friendlyAuthError(error) {
     switch (error.code) {
-      case "auth/user-not-found":
-        return "No account exists with this email.";
-      case "auth/wrong-password":
-        return "Incorrect password. Please try again.";
-      case "auth/email-already-in-use":
-        return "This email is already registered. Please log in.";
-      case "auth/invalid-email":
-        return "Please enter a valid email address.";
-      case "auth/weak-password":
-        return "Password should be at least 6 characters.";
-      default:
-        return "Authentication error. Please try again.";
+      case "auth/user-not-found": return "No account exists with this email.";
+      case "auth/wrong-password": return "Incorrect password.";
+      case "auth/email-already-in-use": return "Email already registered.";
+      case "auth/invalid-email": return "Invalid email address.";
+      case "auth/weak-password": return "Password must be at least 6 characters.";
+      default: return "Authentication error.";
     }
   }
-</script>
 
-<script>
   signupBtn.onclick = async () => {
     try {
-      await auth.createUserWithEmailAndPassword(
-        emailInput.value,
-        passwordInput.value
-      );
-      authMessage.innerText = "Signup successful!";
+      await auth.createUserWithEmailAndPassword(emailInput.value, passwordInput.value);
     } catch (e) {
       authMessage.innerText = friendlyAuthError(e);
     }
@@ -125,40 +113,24 @@
 
   loginBtn.onclick = async () => {
     try {
-      await auth.signInWithEmailAndPassword(
-        emailInput.value,
-        passwordInput.value
-      );
-      authMessage.innerText = "Login successful!";
+      await auth.signInWithEmailAndPassword(emailInput.value, passwordInput.value);
     } catch (e) {
       authMessage.innerText = friendlyAuthError(e);
     }
   };
 
   forgotBtn.onclick = async () => {
-    const email = emailInput.value.trim();
-    if (!email) {
-      authMessage.innerText = "Please enter your email first.";
-      return;
-    }
-    try {
-      await auth.sendPasswordResetEmail(email);
-      authMessage.innerText =
-        "Password reset email sent. Check your inbox.";
-    } catch (e) {
-      authMessage.innerText = friendlyAuthError(e);
-    }
+    if (!emailInput.value) return;
+    await auth.sendPasswordResetEmail(emailInput.value);
+    authMessage.innerText = "Password reset email sent.";
   };
 
-  logoutBtn.onclick = async () => {
-    await auth.signOut();
-  };
+  logoutBtn.onclick = () => auth.signOut();
 
   auth.onAuthStateChanged(async user => {
     if (!user) {
       authSection.style.display = "block";
       appSection.style.display = "none";
-      authMessage.innerText = "";
       return;
     }
 
@@ -166,54 +138,89 @@
     appSection.style.display = "block";
 
     const ref = db.collection("users").doc(user.uid);
-    const snap = await ref.get();
-
-    if (!snap.exists) {
+    if (!(await ref.get()).exists) {
       await ref.set({ streak: 0, lastCheck: null });
     }
 
     loadStreak(user.uid);
   });
-</script>
 
-<script>
   async function loadStreak(uid) {
     const snap = await db.collection("users").doc(uid).get();
-    streakDisplay.innerText =
-      "Current streak: " + snap.data().streak + " days";
+    streakDisplay.innerText = "Current streak: " + snap.data().streak + " days";
   }
 
   markBtn.onclick = async () => {
-    const user = auth.currentUser;
-    if (!user) return;
+    const ref = db.collection("users").doc(auth.currentUser.uid);
+    const data = (await ref.get()).data();
 
-    const ref = db.collection("users").doc(user.uid);
-    const snap = await ref.get();
-    const data = snap.data();
+    const today = new Date().toDateString();
+    if (data.lastCheck === today) return alert("Already marked today");
 
-    const todayStr = new Date().toDateString();
-    if (data.lastCheck === todayStr) {
-      alert("Already marked today!");
-      return;
-    }
-
-    const yesterdayStr =
-      new Date(Date.now() - 86400000).toDateString();
-
+    const yesterday = new Date(Date.now() - 86400000).toDateString();
     const newStreak =
-      data.lastCheck === yesterdayStr || data.lastCheck === null
-        ? data.streak + 1
-        : 1;
+      data.lastCheck === yesterday || data.lastCheck === null ? data.streak + 1 : 1;
 
-    await ref.update({
-      streak: newStreak,
-      lastCheck: todayStr
-    });
+    await ref.update({ streak: newStreak, lastCheck: today });
+    streakDisplay.innerText = "Current streak: " + newStreak + " days";
+  };
+</script>
 
-    streakDisplay.innerText =
-      "Current streak: " + newStreak + " days";
+<script>
+  let activeDateKey = "";
+  const modal = document.getElementById("reflectionModal");
+  const saveBtn = document.getElementById("saveReflectionBtn");
+  const reflectionText = document.getElementById("reflectionText");
+  const reflectionDate = document.getElementById("reflectionDate");
+  const calendarBtn = document.getElementById("calendarBtn");
+  const calendarOverlay = document.getElementById("calendarOverlay");
+  const calendarGrid = document.getElementById("calendarGrid");
+
+  function dateKey(d) {
+    return d.toISOString().slice(0, 10);
+  }
+
+  function todayKey() {
+    const d = new Date();
+    d.setHours(0,0,0,0);
+    return dateKey(d);
+  }
+
+  reflectBtn.onclick = () => openReflection(todayKey());
+
+  function openReflection(key) {
+    activeDateKey = key;
+    reflectionDate.innerText = "Date: " + key;
+    reflectionText.value = localStorage.getItem("reflection-" + key) || "";
+    modal.style.display = "flex";
+  }
+
+  saveBtn.onclick = () => {
+    localStorage.setItem("reflection-" + activeDateKey, reflectionText.value);
+    modal.style.display = "none";
+  };
+
+  calendarBtn.onclick = async () => {
+    calendarGrid.innerHTML = "";
+    calendarOverlay.style.display = "flex";
+
+    const today = new Date();
+    const days = new Date(today.getFullYear(), today.getMonth()+1, 0).getDate();
+
+    for (let d = 1; d <= days; d++) {
+      const date = new Date(today.getFullYear(), today.getMonth(), d);
+      const cell = document.createElement("div");
+      cell.className = "calendar-day active";
+      cell.innerText = d;
+      cell.onclick = () => {
+        openReflection(dateKey(date));
+        calendarOverlay.style.display = "none";
+      };
+      calendarGrid.appendChild(cell);
+    }
   };
 </script>
 
 </body>
 </html>
+
