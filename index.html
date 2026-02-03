@@ -10,6 +10,7 @@
 <div class="container">
   <h2>The Streak Tracker</h2>
 
+  <!-- AUTH -->
   <div id="auth-section">
     <input id="email" type="email" placeholder="Email" />
     <input id="password" type="password" placeholder="Password" />
@@ -19,37 +20,43 @@
     <p id="authMessage"></p>
   </div>
 
+  <!-- APP -->
   <div id="app-section" style="display:none;">
     <p id="streakDisplay">Loading…</p>
     <div class="actions">
       <button id="markBtn">Mark Today</button>
       <button id="reflectBtn">Reflection</button>
+      <button id="calendarBtn">📅</button>
       <button id="logoutBtn">Sign Out</button>
     </div>
   </div>
 </div>
 
+<!-- REFLECTION MODAL (TEXT ONLY) -->
 <div id="reflectionModal" style="display:none;">
   <div class="modal-box">
-
-    <div class="modal-header">
-      <button id="prevMonthBtn">◀</button>
-      <h3 id="calendarTitle"></h3>
-      <button id="nextMonthBtn">▶</button>
-      <button id="calendarBtn" class="calendar-btn">📅</button>
-    </div>
-
-    <div id="calendarOverlay" style="display:none;">
-      <div class="calendar-box">
-        <div class="calendar-grid" id="calendarGrid"></div>
-      </div>
-    </div>
-
-    <textarea id="reflectionText" rows="6"></textarea>
+    <textarea
+      id="reflectionText"
+      placeholder="What do you want to write about today?"
+      rows="6"
+    ></textarea>
     <button id="saveReflectionBtn">Save</button>
   </div>
 </div>
 
+<!-- CALENDAR OVERLAY -->
+<div id="calendarOverlay" style="display:none;">
+  <div class="calendar-box">
+    <div class="calendar-header">
+      <button id="prevMonthBtn">◀</button>
+      <h3 id="calendarTitle">Month</h3>
+      <button id="nextMonthBtn">▶</button>
+    </div>
+    <div class="calendar-grid" id="calendarGrid"></div>
+  </div>
+</div>
+
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
@@ -82,6 +89,7 @@ const appSection = document.getElementById("app-section");
 const streakDisplay = document.getElementById("streakDisplay");
 const markBtn = document.getElementById("markBtn");
 const reflectBtn = document.getElementById("reflectBtn");
+const calendarBtn = document.getElementById("calendarBtn");
 
 signupBtn.onclick = () =>
   auth.createUserWithEmailAndPassword(emailInput.value, passwordInput.value);
@@ -120,34 +128,37 @@ markBtn.onclick = async () => {
   const ref = db.collection("users").doc(auth.currentUser.uid);
   const data = (await ref.get()).data();
 
-  const today = new Date().toDateString();
-  if (data.lastCheck === today) return alert("Already marked");
+  const todayStr = new Date().toDateString();
+  if (data.lastCheck === todayStr) return alert("Already marked today");
 
-  const yesterday = new Date(Date.now() - 86400000).toDateString();
-  const streak = data.lastCheck === yesterday || data.lastCheck === null
-    ? data.streak + 1 : 1;
+  const yesterdayStr =
+    new Date(Date.now() - 86400000).toDateString();
 
-  await ref.update({ streak, lastCheck: today });
-  streakDisplay.innerText = `Current streak: ${streak} days`;
+  const newStreak =
+    data.lastCheck === yesterdayStr || data.lastCheck === null
+      ? data.streak + 1
+      : 1;
+
+  await ref.update({ streak: newStreak, lastCheck: todayStr });
+  streakDisplay.innerText = `Current streak: ${newStreak} days`;
 };
 </script>
 
 <script>
-/* ---------- REFLECTION SYSTEM (STABLE) ---------- */
+/* ---------- REFLECTION + CALENDAR ---------- */
 
-const modal = document.getElementById("reflectionModal");
-const calendarOverlay = document.getElementById("calendarOverlay");
-const calendarGrid = document.getElementById("calendarGrid");
-const calendarTitle = document.getElementById("calendarTitle");
+const reflectionModal = document.getElementById("reflectionModal");
 const reflectionText = document.getElementById("reflectionText");
 const saveBtn = document.getElementById("saveReflectionBtn");
 
+const calendarOverlay = document.getElementById("calendarOverlay");
+const calendarGrid = document.getElementById("calendarGrid");
+const calendarTitle = document.getElementById("calendarTitle");
+const prevMonthBtn = document.getElementById("prevMonthBtn");
+const nextMonthBtn = document.getElementById("nextMonthBtn");
+
 let calendarYear, calendarMonth;
 let activeDate = null;
-
-function dateKey(d) {
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-}
 
 function todayDate() {
   const d = new Date();
@@ -155,6 +166,11 @@ function todayDate() {
   return d;
 }
 
+function dateKey(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+
+/* Reflection button → open TODAY */
 reflectBtn.onclick = () => {
   const today = todayDate();
   calendarYear = today.getFullYear();
@@ -164,41 +180,53 @@ reflectBtn.onclick = () => {
 
 function openReflection(date) {
   activeDate = date;
-  reflectionText.value = localStorage.getItem("reflection-" + dateKey(date)) || "";
+  reflectionText.value =
+    localStorage.getItem("reflection-" + dateKey(date)) || "";
 
   const isToday = dateKey(date) === dateKey(todayDate());
   reflectionText.disabled = !isToday;
   saveBtn.style.display = isToday ? "block" : "none";
 
-  modal.style.display = "flex";
+  reflectionModal.style.display = "flex";
 }
 
 saveBtn.onclick = () => {
-  localStorage.setItem("reflection-" + dateKey(activeDate), reflectionText.value);
-  modal.style.display = "none";
+  localStorage.setItem(
+    "reflection-" + dateKey(activeDate),
+    reflectionText.value
+  );
+  reflectionModal.style.display = "none";
 };
 
-document.getElementById("calendarBtn").onclick = () => {
+/* Calendar button */
+calendarBtn.onclick = () => {
   renderCalendar();
   calendarOverlay.style.display = "flex";
 };
 
-document.getElementById("prevMonthBtn").onclick = () => {
+prevMonthBtn.onclick = () => {
   calendarMonth--;
-  if (calendarMonth < 0) { calendarMonth = 11; calendarYear--; }
+  if (calendarMonth < 0) {
+    calendarMonth = 11;
+    calendarYear--;
+  }
   renderCalendar();
 };
 
-document.getElementById("nextMonthBtn").onclick = () => {
+nextMonthBtn.onclick = () => {
   calendarMonth++;
-  if (calendarMonth > 11) { calendarMonth = 0; calendarYear++; }
+  if (calendarMonth > 11) {
+    calendarMonth = 0;
+    calendarYear++;
+  }
   renderCalendar();
 };
 
 async function renderCalendar() {
   calendarGrid.innerHTML = "";
 
-  const snap = await db.collection("users").doc(auth.currentUser.uid).get();
+  const snap = await db.collection("users")
+    .doc(auth.currentUser.uid).get();
   const streak = snap.data().streak;
 
   const today = todayDate();
@@ -206,11 +234,13 @@ async function renderCalendar() {
   start.setDate(today.getDate() - streak + 1);
 
   calendarTitle.innerText =
-    new Date(calendarYear, calendarMonth).toLocaleString("default", { month: "long", year: "numeric" });
+    new Date(calendarYear, calendarMonth)
+      .toLocaleString("default", { month: "long", year: "numeric" });
 
-  const days = new Date(calendarYear, calendarMonth + 1, 0).getDate();
+  const daysInMonth =
+    new Date(calendarYear, calendarMonth + 1, 0).getDate();
 
-  for (let d = 1; d <= days; d++) {
+  for (let d = 1; d <= daysInMonth; d++) {
     const date = new Date(calendarYear, calendarMonth, d);
     date.setHours(0,0,0,0);
 
@@ -235,3 +265,4 @@ async function renderCalendar() {
 
 </body>
 </html>
+
