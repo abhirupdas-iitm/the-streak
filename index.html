@@ -29,6 +29,7 @@
     <div class="actions">
       <button id="markBtn">Mark Today</button>
       <button id="reflectBtn">Reflection</button>
+      <button id="logoutBtn">Sign Out</button>
     </div>
   </div>
 </div>
@@ -83,6 +84,7 @@
   const signupBtn = document.getElementById("signupBtn");
   const loginBtn = document.getElementById("loginBtn");
   const forgotBtn = document.getElementById("forgotBtn");
+  const logoutBtn = document.getElementById("logoutBtn");
 
   const authMessage = document.getElementById("authMessage");
   const authSection = document.getElementById("auth-section");
@@ -135,12 +137,10 @@
 
   forgotBtn.onclick = async () => {
     const email = emailInput.value.trim();
-
     if (!email) {
       authMessage.innerText = "Please enter your email first.";
       return;
     }
-
     try {
       await auth.sendPasswordResetEmail(email);
       authMessage.innerText =
@@ -150,8 +150,17 @@
     }
   };
 
+  logoutBtn.onclick = async () => {
+    await auth.signOut();
+  };
+
   auth.onAuthStateChanged(async user => {
-    if (!user) return;
+    if (!user) {
+      authSection.style.display = "block";
+      appSection.style.display = "none";
+      authMessage.innerText = "";
+      return;
+    }
 
     authSection.style.display = "none";
     appSection.style.display = "block";
@@ -204,123 +213,6 @@
     streakDisplay.innerText =
       "Current streak: " + newStreak + " days";
   };
-</script>
-
-<script>
-  let activeDateKey = "";
-  let originalReflectionText = "";
-  let hasUnsavedChanges = false;
-
-  const reflectBtn = document.getElementById("reflectBtn");
-  const modal = document.getElementById("reflectionModal");
-  const saveBtn = document.getElementById("saveReflectionBtn");
-  const reflectionText = document.getElementById("reflectionText");
-  const reflectionDate = document.getElementById("reflectionDate");
-  const calendarBtn = document.getElementById("calendarBtn");
-  const calendarOverlay = document.getElementById("calendarOverlay");
-  const calendarGrid = document.getElementById("calendarGrid");
-
-  function localDateKey(d) {
-    return (
-      d.getFullYear() + "-" +
-      String(d.getMonth() + 1).padStart(2, "0") + "-" +
-      String(d.getDate()).padStart(2, "0")
-    );
-  }
-
-  function todayKey() {
-    const t = new Date();
-    t.setHours(0,0,0,0);
-    return localDateKey(t);
-  }
-
-  async function renderCalendar() {
-    calendarGrid.innerHTML = "";
-
-    const snap = await db.collection("users")
-      .doc(auth.currentUser.uid).get();
-    const streak = snap.data().streak;
-
-    const today = new Date();
-    today.setHours(0,0,0,0);
-
-    const start = new Date(today);
-    start.setDate(today.getDate() - streak + 1);
-
-    const year = today.getFullYear();
-    const month = today.getMonth();
-    const days = new Date(year, month + 1, 0).getDate();
-
-    for (let d = 1; d <= days; d++) {
-      const date = new Date(year, month, d);
-      date.setHours(0,0,0,0);
-
-      const cell = document.createElement("div");
-      cell.innerText = d;
-      cell.className = "calendar-day";
-
-      if (date < start || date > today) {
-        cell.classList.add("past");
-      } else {
-        cell.classList.add("active");
-        cell.onclick = () => {
-          openReflectionForDate(localDateKey(date));
-          calendarOverlay.style.display = "none";
-        };
-      }
-
-      calendarGrid.appendChild(cell);
-    }
-  }
-
-  function openReflectionForDate(key) {
-    activeDateKey = key;
-    reflectionDate.innerText = "Date: " + key;
-
-    reflectionText.value =
-      localStorage.getItem("reflection-" + key) || "";
-
-    originalReflectionText = reflectionText.value;
-    hasUnsavedChanges = false;
-
-    if (key !== todayKey()) {
-      reflectionText.disabled = true;
-      saveBtn.style.display = "none";
-    } else {
-      reflectionText.disabled = false;
-      saveBtn.style.display = "block";
-    }
-
-    modal.style.display = "flex";
-  }
-
-  reflectBtn.onclick = () => {
-    openReflectionForDate(todayKey());
-  };
-
-  calendarBtn.onclick = () => {
-    renderCalendar();
-    calendarOverlay.style.display = "flex";
-  };
-
-  saveBtn.onclick = () => {
-    localStorage.setItem(
-      "reflection-" + activeDateKey,
-      reflectionText.value
-    );
-    modal.style.display = "none";
-  };
-
-  reflectionText.addEventListener("input", () => {
-    hasUnsavedChanges =
-      reflectionText.value !== originalReflectionText;
-  });
-
-  modal.addEventListener("click", e => {
-    if (e.target === modal && !hasUnsavedChanges) {
-      modal.style.display = "none";
-    }
-  });
 </script>
 
 </body>
