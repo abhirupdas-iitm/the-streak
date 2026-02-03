@@ -59,6 +59,7 @@
   </div>
 </div>
 
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
@@ -92,8 +93,8 @@
   const markBtn = document.getElementById("markBtn");
   const reflectBtn = document.getElementById("reflectBtn");
 
-  function friendlyAuthError(error) {
-    switch (error.code) {
+  function friendlyAuthError(e) {
+    switch (e.code) {
       case "auth/user-not-found": return "No account exists with this email.";
       case "auth/wrong-password": return "Incorrect password.";
       case "auth/email-already-in-use": return "Email already registered.";
@@ -105,7 +106,10 @@
 
   signupBtn.onclick = async () => {
     try {
-      await auth.createUserWithEmailAndPassword(emailInput.value, passwordInput.value);
+      await auth.createUserWithEmailAndPassword(
+        emailInput.value,
+        passwordInput.value
+      );
     } catch (e) {
       authMessage.innerText = friendlyAuthError(e);
     }
@@ -113,7 +117,10 @@
 
   loginBtn.onclick = async () => {
     try {
-      await auth.signInWithEmailAndPassword(emailInput.value, passwordInput.value);
+      await auth.signInWithEmailAndPassword(
+        emailInput.value,
+        passwordInput.value
+      );
     } catch (e) {
       authMessage.innerText = friendlyAuthError(e);
     }
@@ -138,7 +145,8 @@
     appSection.style.display = "block";
 
     const ref = db.collection("users").doc(user.uid);
-    if (!(await ref.get()).exists) {
+    const snap = await ref.get();
+    if (!snap.exists) {
       await ref.set({ streak: 0, lastCheck: null });
     }
 
@@ -147,27 +155,43 @@
 
   async function loadStreak(uid) {
     const snap = await db.collection("users").doc(uid).get();
-    streakDisplay.innerText = "Current streak: " + snap.data().streak + " days";
+    streakDisplay.innerText =
+      "Current streak: " + snap.data().streak + " days";
   }
 
   markBtn.onclick = async () => {
     const ref = db.collection("users").doc(auth.currentUser.uid);
     const data = (await ref.get()).data();
 
-    const today = new Date().toDateString();
-    if (data.lastCheck === today) return alert("Already marked today");
+    const todayStr = new Date().toDateString();
+    if (data.lastCheck === todayStr) {
+      alert("Already marked today!");
+      return;
+    }
 
-    const yesterday = new Date(Date.now() - 86400000).toDateString();
+    const yesterdayStr =
+      new Date(Date.now() - 86400000).toDateString();
+
     const newStreak =
-      data.lastCheck === yesterday || data.lastCheck === null ? data.streak + 1 : 1;
+      data.lastCheck === yesterdayStr || data.lastCheck === null
+        ? data.streak + 1
+        : 1;
 
-    await ref.update({ streak: newStreak, lastCheck: today });
-    streakDisplay.innerText = "Current streak: " + newStreak + " days";
+    await ref.update({
+      streak: newStreak,
+      lastCheck: todayStr
+    });
+
+    streakDisplay.innerText =
+      "Current streak: " + newStreak + " days";
   };
 </script>
 
 <script>
   let activeDateKey = "";
+  let originalReflectionText = "";
+  let hasUnsavedChanges = false;
+
   const modal = document.getElementById("reflectionModal");
   const saveBtn = document.getElementById("saveReflectionBtn");
   const reflectionText = document.getElementById("reflectionText");
@@ -176,51 +200,106 @@
   const calendarOverlay = document.getElementById("calendarOverlay");
   const calendarGrid = document.getElementById("calendarGrid");
 
-  function dateKey(d) {
-    return d.toISOString().slice(0, 10);
+  function localDateKey(d) {
+    return (
+      d.getFullYear() + "-" +
+      String(d.getMonth() + 1).padStart(2, "0") + "-" +
+      String(d.getDate()).padStart(2, "0")
+    );
   }
 
   function todayKey() {
-    const d = new Date();
-    d.setHours(0,0,0,0);
-    return dateKey(d);
+    const t = new Date();
+    t.setHours(0,0,0,0);
+    return localDateKey(t);
   }
 
-  reflectBtn.onclick = () => openReflection(todayKey());
+  reflectBtn.onclick = () => openReflectionForDate(todayKey());
 
-  function openReflection(key) {
+  async function renderCalendar() {
+    calendarGrid.innerHTML = "";
+
+    const snap = await db.collection("users")
+      .doc(auth.currentUser.uid).get();
+    const streak = snap.data().streak;
+
+    const today = new Date();
+    today.setHours(0,0,0,0);
+
+    const start = new Date(today);
+    start.setDate(today.getDate() - streak + 1);
+
+    const year = today.getFullYear();
+    const month = today.getMonth();
+    const days = new Date(year, month + 1, 0).getDate();
+
+    for (let d = 1; d <= days; d++) {
+      const date = new Date(year, month, d);
+      date.setHours(0,0,0,0);
+
+      const cell = document.createElement("div");
+      cell.innerText = d;
+      cell.className = "calendar-day";
+
+      if (date < start || date > today) {
+        cell.classList.add("past");
+      } else {
+        cell.classList.add("active");
+        cell.onclick = () => {
+          openReflectionForDate(localDateKey(date));
+          calendarOverlay.style.display = "none";
+        };
+      }
+
+      calendarGrid.appendChild(cell);
+    }
+  }
+
+  function openReflectionForDate(key) {
     activeDateKey = key;
     reflectionDate.innerText = "Date: " + key;
-    reflectionText.value = localStorage.getItem("reflection-" + key) || "";
+
+    reflectionText.value =
+      localStorage.getItem("reflection-" + key) || "";
+
+    originalReflectionText = reflectionText.value;
+    hasUnsavedChanges = false;
+
+    if (key !== todayKey()) {
+      reflectionText.disabled = true;
+      saveBtn.style.display = "none";
+    } else {
+      reflectionText.disabled = false;
+      saveBtn.style.display = "block";
+    }
+
     modal.style.display = "flex";
   }
 
+  calendarBtn.onclick = () => {
+    renderCalendar();
+    calendarOverlay.style.display = "flex";
+  };
+
   saveBtn.onclick = () => {
-    localStorage.setItem("reflection-" + activeDateKey, reflectionText.value);
+    localStorage.setItem(
+      "reflection-" + activeDateKey,
+      reflectionText.value
+    );
     modal.style.display = "none";
   };
 
-  calendarBtn.onclick = async () => {
-    calendarGrid.innerHTML = "";
-    calendarOverlay.style.display = "flex";
+  reflectionText.addEventListener("input", () => {
+    hasUnsavedChanges =
+      reflectionText.value !== originalReflectionText;
+  });
 
-    const today = new Date();
-    const days = new Date(today.getFullYear(), today.getMonth()+1, 0).getDate();
-
-    for (let d = 1; d <= days; d++) {
-      const date = new Date(today.getFullYear(), today.getMonth(), d);
-      const cell = document.createElement("div");
-      cell.className = "calendar-day active";
-      cell.innerText = d;
-      cell.onclick = () => {
-        openReflection(dateKey(date));
-        calendarOverlay.style.display = "none";
-      };
-      calendarGrid.appendChild(cell);
+  modal.addEventListener("click", e => {
+    if (e.target === modal && !hasUnsavedChanges) {
+      modal.style.display = "none";
     }
-  };
+  });
 </script>
 
 </body>
 </html>
-
