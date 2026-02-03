@@ -39,8 +39,10 @@
   <div class="modal-box">
 
     <div class="modal-header">
-      <h3 id="reflectionDate">Date</h3>
-      <button id="calendarBtn" class="calendar-btn">📅</button>
+        <button id="prevMonthBtn">◀</button>
+        <h3 id="calendarTitle">Month</h3>
+        <button id="nextMonthBtn">▶</button>
+        <button id="calendarBtn" class="calendar-btn">📅</button>
     </div>
 
     <div id="calendarOverlay" style="display:none;">
@@ -191,6 +193,8 @@
   let activeDateKey = "";
   let originalReflectionText = "";
   let hasUnsavedChanges = false;
+  let calendarYear = null;
+  let calendarMonth = null;
 
   const modal = document.getElementById("reflectionModal");
   const saveBtn = document.getElementById("saveReflectionBtn");
@@ -218,29 +222,37 @@
 
   async function renderCalendar() {
     calendarGrid.innerHTML = "";
-
+  
     const snap = await db.collection("users")
       .doc(auth.currentUser.uid).get();
     const streak = snap.data().streak;
-
+  
     const today = new Date();
     today.setHours(0,0,0,0);
-
+  
     const start = new Date(today);
     start.setDate(today.getDate() - streak + 1);
+  
+    const year = calendarYear;
+    const month = calendarMonth;
+  
+    const monthName = new Date(year, month).toLocaleString("default", {
+      month: "long"
+    });
 
-    const year = today.getFullYear();
-    const month = today.getMonth();
-    const days = new Date(year, month + 1, 0).getDate();
-
-    for (let d = 1; d <= days; d++) {
+    document.getElementById("calendarTitle").innerText =
+    `${monthName} ${year}`;
+  
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+  
+    for (let d = 1; d <= daysInMonth; d++) {
       const date = new Date(year, month, d);
       date.setHours(0,0,0,0);
-
+  
       const cell = document.createElement("div");
       cell.innerText = d;
       cell.className = "calendar-day";
-
+  
       if (date < start || date > today) {
         cell.classList.add("past");
       } else {
@@ -250,10 +262,11 @@
           calendarOverlay.style.display = "none";
         };
       }
-
+  
       calendarGrid.appendChild(cell);
     }
   }
+
 
   function openReflectionForDate(key) {
     activeDateKey = key;
@@ -277,8 +290,29 @@
   }
 
   calendarBtn.onclick = () => {
+     const today = new Date();
+     calendarYear = today.getFullYear();
+     calendarMonth = today.getMonth();
+     renderCalendar();
+     calendarOverlay.style.display = "flex";
+  };
+
+  document.getElementById("prevMonthBtn").onclick = () => {
+    calendarMonth--;
+    if (calendarMonth < 0) {
+      calendarMonth = 11;
+      calendarYear--;
+    }
     renderCalendar();
-    calendarOverlay.style.display = "flex";
+  };
+  
+  document.getElementById("nextMonthBtn").onclick = () => {
+    calendarMonth++;
+    if (calendarMonth > 11) {
+      calendarMonth = 0;
+      calendarYear++;
+    }
+    renderCalendar();
   };
 
   saveBtn.onclick = () => {
