@@ -79,7 +79,7 @@ firebase.initializeApp(firebaseConfig);
 
 const auth = firebase.auth();
 const db = firebase.firestore();
-const functions = firebase.functions();
+const functions = firebase.app().functions("us-central1");
 
 /* ✅ Callable reference */
 const summarizeReflections =
