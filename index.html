@@ -10,7 +10,6 @@
 <div class="container">
   <h2>The Streak Tracker</h2>
 
-  <!-- AUTH -->
   <div id="auth-section">
     <input id="email" type="email" placeholder="Email" />
     <input id="password" type="password" placeholder="Password" />
@@ -20,7 +19,6 @@
     <p id="authMessage"></p>
   </div>
 
-  <!-- APP -->
   <div id="app-section" style="display:none;">
     <p id="streakDisplay">Loading…</p>
     <div class="actions">
@@ -32,38 +30,33 @@
   </div>
 </div>
 
-<!-- REFLECTION MODAL (TEXT ONLY) -->
-<div id="reflectionModal" style="display:none;">
+<!-- REFLECTION MODAL -->
+<div id="reflectionModal" class="overlay" style="display:none;">
   <div class="modal-box">
-    <textarea
-      id="reflectionText"
-      placeholder="What do you want to write about today?"
-      rows="6"
-    ></textarea>
+    <textarea id="reflectionText" rows="6"
+      placeholder="What do you want to write today?"></textarea>
     <button id="saveReflectionBtn">Save</button>
   </div>
 </div>
 
 <!-- CALENDAR OVERLAY -->
-<div id="calendarOverlay" style="display:none;">
+<div id="calendarOverlay" class="overlay" style="display:none;">
   <div class="calendar-box">
     <div class="calendar-header">
       <button id="prevMonthBtn">◀</button>
-      <h3 id="calendarTitle">Month</h3>
+      <h3 id="calendarTitle"></h3>
       <button id="nextMonthBtn">▶</button>
     </div>
     <div class="calendar-grid" id="calendarGrid"></div>
   </div>
 </div>
 
-<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
 <script>
-/* ---------- AUTH + STREAK ---------- */
-
+/* ---------- FIREBASE ---------- */
 const firebaseConfig = {
   apiKey: "AIzaSyANFF4TkIpc3vB3_jwA5xK6rh4EryigVVI",
   authDomain: "the-streak2.firebaseapp.com",
@@ -72,43 +65,51 @@ const firebaseConfig = {
   messagingSenderId: "377658825110",
   appId: "1:377658825110:web:b7b3c7b407af8a9beda5b7"
 };
-
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-const emailInput = document.getElementById("email");
-const passwordInput = document.getElementById("password");
-const signupBtn = document.getElementById("signupBtn");
-const loginBtn = document.getElementById("loginBtn");
-const forgotBtn = document.getElementById("forgotBtn");
-const logoutBtn = document.getElementById("logoutBtn");
-
+/* ---------- ELEMENTS ---------- */
 const authSection = document.getElementById("auth-section");
 const appSection = document.getElementById("app-section");
 const streakDisplay = document.getElementById("streakDisplay");
+
 const markBtn = document.getElementById("markBtn");
 const reflectBtn = document.getElementById("reflectBtn");
 const calendarBtn = document.getElementById("calendarBtn");
+const logoutBtn = document.getElementById("logoutBtn");
 
-signupBtn.onclick = () =>
-  auth.createUserWithEmailAndPassword(emailInput.value, passwordInput.value);
+const reflectionModal = document.getElementById("reflectionModal");
+const calendarOverlay = document.getElementById("calendarOverlay");
+const reflectionText = document.getElementById("reflectionText");
+const saveBtn = document.getElementById("saveReflectionBtn");
 
-loginBtn.onclick = () =>
-  auth.signInWithEmailAndPassword(emailInput.value, passwordInput.value);
+const calendarGrid = document.getElementById("calendarGrid");
+const calendarTitle = document.getElementById("calendarTitle");
+const prevMonthBtn = document.getElementById("prevMonthBtn");
+const nextMonthBtn = document.getElementById("nextMonthBtn");
 
-forgotBtn.onclick = () =>
-  auth.sendPasswordResetEmail(emailInput.value);
+/* ---------- DATE HELPERS ---------- */
+function todayDate() {
+  const d = new Date();
+  d.setHours(0,0,0,0);
+  return d;
+}
+function dateKey(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
 
-logoutBtn.onclick = () => auth.signOut();
+/* ---------- STATE ---------- */
+let calendarYear, calendarMonth;
+let activeDate = null;
 
+/* ---------- AUTH ---------- */
 auth.onAuthStateChanged(async user => {
   if (!user) {
     authSection.style.display = "block";
     appSection.style.display = "none";
     return;
   }
-
   authSection.style.display = "none";
   appSection.style.display = "block";
 
@@ -116,61 +117,29 @@ auth.onAuthStateChanged(async user => {
   const snap = await ref.get();
   if (!snap.exists) await ref.set({ streak: 0, lastCheck: null });
 
-  loadStreak(user.uid);
+  streakDisplay.innerText = `Current streak: ${snap.data().streak} days`;
 });
 
-async function loadStreak(uid) {
-  const snap = await db.collection("users").doc(uid).get();
-  streakDisplay.innerText = `Current streak: ${snap.data().streak} days`;
-}
-
+/* ---------- STREAK ---------- */
 markBtn.onclick = async () => {
   const ref = db.collection("users").doc(auth.currentUser.uid);
   const data = (await ref.get()).data();
 
   const todayStr = new Date().toDateString();
-  if (data.lastCheck === todayStr) return alert("Already marked today");
+  if (data.lastCheck === todayStr) return;
 
   const yesterdayStr =
     new Date(Date.now() - 86400000).toDateString();
 
-  const newStreak =
+  const streak =
     data.lastCheck === yesterdayStr || data.lastCheck === null
-      ? data.streak + 1
-      : 1;
+      ? data.streak + 1 : 1;
 
-  await ref.update({ streak: newStreak, lastCheck: todayStr });
-  streakDisplay.innerText = `Current streak: ${newStreak} days`;
+  await ref.update({ streak, lastCheck: todayStr });
+  streakDisplay.innerText = `Current streak: ${streak} days`;
 };
-</script>
 
-<script>
-/* ---------- REFLECTION + CALENDAR ---------- */
-
-const reflectionModal = document.getElementById("reflectionModal");
-const reflectionText = document.getElementById("reflectionText");
-const saveBtn = document.getElementById("saveReflectionBtn");
-
-const calendarOverlay = document.getElementById("calendarOverlay");
-const calendarGrid = document.getElementById("calendarGrid");
-const calendarTitle = document.getElementById("calendarTitle");
-const prevMonthBtn = document.getElementById("prevMonthBtn");
-const nextMonthBtn = document.getElementById("nextMonthBtn");
-
-let calendarYear, calendarMonth;
-let activeDate = null;
-
-function todayDate() {
-  const d = new Date();
-  d.setHours(0,0,0,0);
-  return d;
-}
-
-function dateKey(d) {
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-}
-
-/* Reflection button → open TODAY */
+/* ---------- REFLECTION ---------- */
 reflectBtn.onclick = () => {
   const today = todayDate();
   calendarYear = today.getFullYear();
@@ -195,30 +164,26 @@ saveBtn.onclick = () => {
     "reflection-" + dateKey(activeDate),
     reflectionText.value
   );
-  reflectionModal.style.display = "none";
+  closeOverlays();
 };
 
-/* Calendar button */
-calendarBtn.onclick = () => {
-  renderCalendar();
+/* ---------- CALENDAR ---------- */
+calendarBtn.onclick = async () => {
+  const today = todayDate();
+  calendarYear = today.getFullYear();
+  calendarMonth = today.getMonth();
+  await renderCalendar();
   calendarOverlay.style.display = "flex";
 };
 
 prevMonthBtn.onclick = () => {
   calendarMonth--;
-  if (calendarMonth < 0) {
-    calendarMonth = 11;
-    calendarYear--;
-  }
+  if (calendarMonth < 0) { calendarMonth = 11; calendarYear--; }
   renderCalendar();
 };
-
 nextMonthBtn.onclick = () => {
   calendarMonth++;
-  if (calendarMonth > 11) {
-    calendarMonth = 0;
-    calendarYear++;
-  }
+  if (calendarMonth > 11) { calendarMonth = 0; calendarYear++; }
   renderCalendar();
 };
 
@@ -257,12 +222,28 @@ async function renderCalendar() {
         openReflection(date);
       };
     }
-
     calendarGrid.appendChild(cell);
   }
 }
+
+/* ---------- GLOBAL CLOSE ---------- */
+function closeOverlays() {
+  reflectionModal.style.display = "none";
+  calendarOverlay.style.display = "none";
+}
+
+document.querySelectorAll(".overlay").forEach(ov => {
+  ov.addEventListener("click", e => {
+    if (e.target === ov) closeOverlays();
+  });
+});
+
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") closeOverlays();
+});
+
+logoutBtn.onclick = () => auth.signOut();
 </script>
 
 </body>
 </html>
-
