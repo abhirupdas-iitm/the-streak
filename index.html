@@ -203,6 +203,12 @@ function initSelectors() {
     monthSelect.appendChild(opt);
   });
 
+function syncSelectors() {
+  monthSelect.value = calendarMonth;
+  yearSelect.value = calendarYear;
+}
+
+
   const currentYear = todayDate().getFullYear();
   for (let y = currentYear; y >= currentYear - 15; y--) {
     const opt = document.createElement("option");
@@ -231,6 +237,7 @@ prevMonthBtn.onclick = () => {
     calendarMonth = 11;
     calendarYear--;
   }
+  syncSelectors();
   renderCalendar();
 };
 
@@ -240,6 +247,7 @@ nextMonthBtn.onclick = () => {
     calendarMonth = 0;
     calendarYear++;
   }
+  syncSelectors();
   renderCalendar();
 };
 
