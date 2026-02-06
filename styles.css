@@ -165,3 +165,26 @@ button:hover {
 .calendar-day.active:hover {
   background: rgba(0,255,170,0.15);
 }
+.calendar-header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  padding: 0 12px;
+  margin-bottom: 12px;
+}
+
+.calendar-header h3 {
+  justify-self: center;
+  color: #00ffae;
+  font-weight: 600;
+  margin: 0;
+}
+
+.calendar-header button {
+  background: #f2f2f2;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
