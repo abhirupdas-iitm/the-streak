@@ -126,7 +126,11 @@ markBtn.onclick = async () => {
   const data = (await ref.get()).data();
 
   const todayStr = new Date().toDateString();
-  if (data.lastCheck === todayStr) return;
+ 
+  if (data.lastCheck === todayStr) {
+    alert("Already marked for today!");
+    return;
+  }
 
   const yesterdayStr =
     new Date(Date.now() - 86400000).toDateString();
