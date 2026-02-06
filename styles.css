@@ -12,18 +12,17 @@ body {
   color: #00ff99;
   font-family: Arial, sans-serif;
 
-  /* CENTERING LOGIC */
   display: flex;
-  justify-content: center;   /* horizontal center */
-  align-items: flex-start;   /* stay near top, not vertical center */
+  justify-content: center;
+  align-items: flex-start;
 }
 
 /* Main app container */
 .container {
-  margin-top: 80px;          /* space from top */
+  margin-top: 80px;
   width: 100%;
-  max-width: 420px;          /* keeps UI compact */
-  text-align: center;        /* centers text + buttons */
+  max-width: 420px;
+  text-align: center;
 }
 
 /* Inputs */
@@ -49,40 +48,34 @@ button {
 button:hover {
   opacity: 0.9;
 }
-/* Action buttons grouping */
+
+/* Actions */
 .actions {
   margin-top: 16px;
 }
 
-/* Reflection modal overlay */
-#reflectionModal {
+/* Overlay */
+.overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.75);
+  background: rgba(0,0,0,0.75);
   display: none;
   justify-content: center;
   align-items: center;
   z-index: 1000;
 }
 
-/* Modal box */
+/* Modal */
 .modal-box {
   background: #111;
   width: 90%;
   max-width: 400px;
   padding: 20px;
   border-radius: 10px;
-  box-shadow: 0 0 25px rgba(0, 255, 150, 0.25);
-  text-align: center;
+  box-shadow: 0 0 25px rgba(0,255,150,0.25);
 }
 
-/* Modal title */
-.modal-box h3 {
-  margin-bottom: 12px;
-  color: #00ff99;
-}
-
-/* Reflection textarea */
+/* Textarea */
 #reflectionText {
   width: 100%;
   padding: 10px;
@@ -90,39 +83,16 @@ button:hover {
   color: #e8e8e8;
   border-radius: 6px;
   border: none;
-  outline: none;
   resize: none;
 }
 
-/* Save button spacing */
+/* Save */
 #saveReflectionBtn {
   margin-top: 14px;
   width: 100%;
 }
-/* Calendar button */
-.calendar-btn {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  background: none;
-  border: none;
-  font-size: 22px;
-  cursor: pointer;
-  color: #00ffae;
-}
 
-/* Calendar overlay */
-#calendarOverlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.6);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 2000;
-}
-
-/* Calendar container */
+/* Calendar */
 .calendar-box {
   background: #111;
   padding: 20px;
@@ -130,14 +100,12 @@ button:hover {
   box-shadow: 0 0 20px rgba(0,255,170,0.3);
 }
 
-/* Grid */
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 40px);
   gap: 10px;
 }
 
-/* Day cell */
 .calendar-day {
   width: 40px;
   height: 40px;
@@ -145,46 +113,42 @@ button:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
   color: #aaa;
 }
 
-/* Past (before registration) */
 .calendar-day.past {
   color: #555;
-  cursor: default;
 }
 
-/* Active streak days */
 .calendar-day.active {
   border: 2px solid #00ffae;
   color: #00ffae;
+  cursor: pointer;
 }
 
-/* Hover */
 .calendar-day.active:hover {
   background: rgba(0,255,170,0.15);
 }
+
+/* Header */
 .calendar-header {
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
-  padding: 0 12px;
   margin-bottom: 12px;
 }
 
-.calendar-header h3 {
-  justify-self: center;
-  color: #00ffae;
-  font-weight: 600;
-  margin: 0;
+.calendar-selectors {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
 }
 
-.calendar-header button {
-  background: #f2f2f2;
-  border: none;
+.calendar-selectors select {
+  background: #111;
+  color: #00ffae;
+  border: 1px solid #00ffae;
   border-radius: 6px;
-  padding: 6px 10px;
-  cursor: pointer;
+  padding: 4px 8px;
 }
 

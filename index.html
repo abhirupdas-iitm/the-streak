@@ -44,9 +44,15 @@
   <div class="calendar-box">
     <div class="calendar-header">
       <button id="prevMonthBtn">◀</button>
-      <h3 id="calendarTitle"></h3>
+
+      <div class="calendar-selectors">
+        <select id="monthSelect"></select>
+        <select id="yearSelect"></select>
+      </div>
+
       <button id="nextMonthBtn">▶</button>
     </div>
+
     <div class="calendar-grid" id="calendarGrid"></div>
   </div>
 </div>
@@ -85,9 +91,10 @@ const reflectionText = document.getElementById("reflectionText");
 const saveBtn = document.getElementById("saveReflectionBtn");
 
 const calendarGrid = document.getElementById("calendarGrid");
-const calendarTitle = document.getElementById("calendarTitle");
 const prevMonthBtn = document.getElementById("prevMonthBtn");
 const nextMonthBtn = document.getElementById("nextMonthBtn");
+const monthSelect = document.getElementById("monthSelect");
+const yearSelect = document.getElementById("yearSelect");
 
 /* ---------- DATE HELPERS ---------- */
 function todayDate() {
@@ -102,6 +109,11 @@ function dateKey(d) {
 /* ---------- STATE ---------- */
 let calendarYear, calendarMonth;
 let activeDate = null;
+
+const MONTHS = [
+  "January","February","March","April","May","June",
+  "July","August","September","October","November","December"
+];
 
 /* ---------- AUTH ---------- */
 auth.onAuthStateChanged(async user => {
@@ -126,7 +138,6 @@ markBtn.onclick = async () => {
   const data = (await ref.get()).data();
 
   const todayStr = new Date().toDateString();
- 
   if (data.lastCheck === todayStr) {
     alert("Already marked for today!");
     return;
@@ -176,18 +187,59 @@ calendarBtn.onclick = async () => {
   const today = todayDate();
   calendarYear = today.getFullYear();
   calendarMonth = today.getMonth();
+  initSelectors();
   await renderCalendar();
   calendarOverlay.style.display = "flex";
 };
 
-prevMonthBtn.onclick = () => {
-  calendarMonth--;
-  if (calendarMonth < 0) { calendarMonth = 11; calendarYear--; }
+function initSelectors() {
+  monthSelect.innerHTML = "";
+  yearSelect.innerHTML = "";
+
+  MONTHS.forEach((m, i) => {
+    const opt = document.createElement("option");
+    opt.value = i;
+    opt.textContent = m;
+    monthSelect.appendChild(opt);
+  });
+
+  const currentYear = todayDate().getFullYear();
+  for (let y = currentYear; y >= currentYear - 15; y--) {
+    const opt = document.createElement("option");
+    opt.value = y;
+    opt.textContent = y;
+    yearSelect.appendChild(opt);
+  }
+
+  monthSelect.value = calendarMonth;
+  yearSelect.value = calendarYear;
+}
+
+monthSelect.onchange = () => {
+  calendarMonth = Number(monthSelect.value);
   renderCalendar();
 };
+
+yearSelect.onchange = () => {
+  calendarYear = Number(yearSelect.value);
+  renderCalendar();
+};
+
+prevMonthBtn.onclick = () => {
+  calendarMonth--;
+  if (calendarMonth < 0) {
+    calendarMonth = 11;
+    calendarYear--;
+  }
+  renderCalendar();
+};
+
 nextMonthBtn.onclick = () => {
   calendarMonth++;
-  if (calendarMonth > 11) { calendarMonth = 0; calendarYear++; }
+  if (calendarMonth > 11) {
+    calendarMonth = 0;
+    calendarYear++;
+  }
   renderCalendar();
 };
 
@@ -201,10 +253,6 @@ async function renderCalendar() {
   const today = todayDate();
   const start = new Date(today);
   start.setDate(today.getDate() - streak + 1);
-
-  calendarTitle.innerText =
-    new Date(calendarYear, calendarMonth)
-      .toLocaleString("default", { month: "long", year: "numeric" });
 
   const daysInMonth =
     new Date(calendarYear, calendarMonth + 1, 0).getDate();
@@ -251,3 +299,4 @@ logoutBtn.onclick = () => auth.signOut();
 
 </body>
 </html>
+
