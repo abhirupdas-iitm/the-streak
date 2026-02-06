@@ -1,4 +1,4 @@
-const { onCall } = require("firebase-functions/v2/https");
+const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { defineSecret } = require("firebase-functions/params");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
@@ -7,16 +7,15 @@ const GEMINI_API_KEY = defineSecret("GEMINI_API_KEY");
 exports.summarizeReflections = onCall(
   { secrets: [GEMINI_API_KEY] },
   async (request) => {
-
     // 1. Auth check
     if (!request.auth) {
-      throw new Error("Authentication required.");
+      throw new HttpsError("unauthenticated", "Authentication required.");
     }
 
     // 2. Input validation
     const reflections = request.data.reflections;
     if (!Array.isArray(reflections) || reflections.length === 0) {
-      throw new Error("No reflections provided.");
+      throw new HttpsError("invalid-argument", "No reflections provided.");
     }
 
     // 3. Gemini client
@@ -37,20 +36,22 @@ Rules:
 - Neutral, reflective tone
 
 Reflections:
-${reflections.join("\n---\n")}
+${reflections.join("\\n---\\n")}
 `;
 
-    // 5. Call Gemini
-    const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash"
-    });
+    try {
+      // 5. Call Gemini (requires @google/generative-ai up to date)
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const result = await model.generateContent(prompt);
+      const summary = result.response.text();
 
-    const result = await model.generateContent(prompt);
-
-    // 6. Return result
-    return {
-      summary: result.response.text()
-    };
+      // 6. Return result
+      return { summary };
+    } catch (err) {
+      console.error("Gemini API error:", err);
+      throw new HttpsError("internal", "AI summarization failed.");
+    }
   }
 );
+
 
