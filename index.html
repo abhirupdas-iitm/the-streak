@@ -30,7 +30,6 @@
   </div>
 </div>
 
-<!-- REFLECTION MODAL -->
 <div id="reflectionModal" class="overlay" style="display:none;">
   <div class="modal-box">
     <textarea id="reflectionText" rows="6"
@@ -39,7 +38,6 @@
   </div>
 </div>
 
-<!-- CALENDAR OVERLAY -->
 <div id="calendarOverlay" class="overlay" style="display:none;">
   <div class="calendar-box">
     <div class="calendar-header">
@@ -62,7 +60,6 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
 <script>
-/* ---------- FIREBASE ---------- */
 const firebaseConfig = {
   apiKey: "AIzaSyANFF4TkIpc3vB3_jwA5xK6rh4EryigVVI",
   authDomain: "the-streak2.firebaseapp.com",
@@ -75,7 +72,6 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-/* ---------- ELEMENTS ---------- */
 const authSection = document.getElementById("auth-section");
 const appSection = document.getElementById("app-section");
 const streakDisplay = document.getElementById("streakDisplay");
@@ -96,7 +92,6 @@ const nextMonthBtn = document.getElementById("nextMonthBtn");
 const monthSelect = document.getElementById("monthSelect");
 const yearSelect = document.getElementById("yearSelect");
 
-/* ---------- DATE HELPERS ---------- */
 function todayDate() {
   const d = new Date();
   d.setHours(0,0,0,0);
@@ -106,7 +101,6 @@ function dateKey(d) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 }
 
-/* ---------- STATE ---------- */
 let calendarYear, calendarMonth;
 let activeDate = null;
 
@@ -115,7 +109,6 @@ const MONTHS = [
   "July","August","September","October","November","December"
 ];
 
-/* ---------- AUTH ---------- */
 auth.onAuthStateChanged(async user => {
   if (!user) {
     authSection.style.display = "block";
@@ -132,7 +125,6 @@ auth.onAuthStateChanged(async user => {
   streakDisplay.innerText = `Current streak: ${snap.data().streak} days`;
 });
 
-/* ---------- STREAK ---------- */
 markBtn.onclick = async () => {
   const ref = db.collection("users").doc(auth.currentUser.uid);
   const data = (await ref.get()).data();
@@ -154,7 +146,6 @@ markBtn.onclick = async () => {
   streakDisplay.innerText = `Current streak: ${streak} days`;
 };
 
-/* ---------- REFLECTION ---------- */
 reflectBtn.onclick = () => {
   const today = todayDate();
   calendarYear = today.getFullYear();
@@ -182,7 +173,6 @@ saveBtn.onclick = () => {
   closeOverlays();
 };
 
-/* ---------- CALENDAR ---------- */
 calendarBtn.onclick = async () => {
   const today = todayDate();
   calendarYear = today.getFullYear();
@@ -203,12 +193,6 @@ function initSelectors() {
     monthSelect.appendChild(opt);
   });
 
-function syncSelectors() {
-  monthSelect.value = calendarMonth;
-  yearSelect.value = calendarYear;
-}
-
-
   const currentYear = todayDate().getFullYear();
   for (let y = currentYear; y >= currentYear - 15; y--) {
     const opt = document.createElement("option");
@@ -217,6 +201,11 @@ function syncSelectors() {
     yearSelect.appendChild(opt);
   }
 
+  syncSelectors();
+}
+
+/* ✅ FIXED: now top-level */
+function syncSelectors() {
   monthSelect.value = calendarMonth;
   yearSelect.value = calendarYear;
 }
@@ -286,7 +275,6 @@ async function renderCalendar() {
   }
 }
 
-/* ---------- GLOBAL CLOSE ---------- */
 function closeOverlays() {
   reflectionModal.style.display = "none";
   calendarOverlay.style.display = "none";
