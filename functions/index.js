@@ -40,8 +40,8 @@ ${reflections.join("\\n---\\n")}
 `;
 
     try {
-      // 5. Call Gemini (requires @google/generative-ai up to date)
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      // 5. Call Gemini
+      const model = genAI.getGenerativeModel({ model: "gemini-1.0-pro" });
       const result = await model.generateContent(prompt);
       const summary = result.response.text();
 
@@ -53,5 +53,4 @@ ${reflections.join("\\n---\\n")}
     }
   }
 );
-
 

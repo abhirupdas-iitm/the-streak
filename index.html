@@ -89,6 +89,52 @@ const authSection = document.getElementById("auth-section");
 const appSection = document.getElementById("app-section");
 const streakDisplay = document.getElementById("streakDisplay");
 
+const emailInput = document.getElementById("email");
+const passwordInput = document.getElementById("password");
+const signupBtn = document.getElementById("signupBtn");
+const loginBtn = document.getElementById("loginBtn");
+const forgotBtn = document.getElementById("forgotBtn");
+const authMessage = document.getElementById("authMessage");
+
+/* ===============================
+   AUTH BUTTON LOGIC (FIXED)
+================================ */
+
+signupBtn.onclick = async () => {
+  try {
+    await auth.createUserWithEmailAndPassword(
+      emailInput.value,
+      passwordInput.value
+    );
+    authMessage.innerText = "Account created successfully!";
+  } catch (err) {
+    authMessage.innerText = err.message;
+  }
+};
+
+loginBtn.onclick = async () => {
+  try {
+    await auth.signInWithEmailAndPassword(
+      emailInput.value,
+      passwordInput.value
+    );
+    authMessage.innerText = "";
+  } catch (err) {
+    authMessage.innerText = err.message;
+  }
+};
+
+forgotBtn.onclick = async () => {
+  try {
+    await auth.sendPasswordResetEmail(emailInput.value);
+    authMessage.innerText =
+      "Password reset email sent!Please check you inbox! (even the spam folders)";
+  } catch (err) {
+    authMessage.innerText = err.message;
+  }
+};
+
+
 const markBtn = document.getElementById("markBtn");
 const reflectBtn = document.getElementById("reflectBtn");
 const calendarBtn = document.getElementById("calendarBtn");
