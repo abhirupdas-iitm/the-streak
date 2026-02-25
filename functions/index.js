@@ -1,56 +1,176 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
-const { defineSecret } = require("firebase-functions/params");
-const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-const GEMINI_API_KEY = defineSecret("GEMINI_API_KEY");
+const { defineSecret } = require("firebase-functions/params");
+
+// Use Hugging Face API instead - FREE tier available!
+
+const HF_API_KEY = defineSecret("HF_API_KEY");
 
 exports.summarizeReflections = onCall(
-  { secrets: [GEMINI_API_KEY] },
+
+  { secrets: [HF_API_KEY] },
+
   async (request) => {
+
+    console.log("=== Function called ===");
+
+    console.log("Auth present:", !!request.auth);
+
     // 1. Auth check
+
     if (!request.auth) {
-      throw new HttpsError("unauthenticated", "Authentication required.");
+
+      throw new HttpsError(
+
+        "unauthenticated",
+
+        "Authentication required."
+
+      );
+
     }
 
     // 2. Input validation
+
     const reflections = request.data.reflections;
+
+    console.log("Reflections count:", reflections?.length || 0);
+
     if (!Array.isArray(reflections) || reflections.length === 0) {
-      throw new HttpsError("invalid-argument", "No reflections provided.");
+
+      throw new HttpsError(
+
+        "invalid-argument",
+
+        "No reflections provided."
+
+      );
+
     }
-
-    // 3. Gemini client
-    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY.value());
-
-    // 4. Prompt
-    const prompt = `
-You are analyzing a series of personal daily reflections.
-
-Tasks:
-- Identify the dominant emotional tone
-- Identify recurring mental or behavioral patterns
-- Produce a concise, analytical summary
-
-Rules:
-- No advice
-- No motivational language
-- Neutral, reflective tone
-
-Reflections:
-${reflections.join("\\n---\\n")}
-`;
 
     try {
-      // 5. Call Gemini
-      const model = genAI.getGenerativeModel({ model: "gemini-1.0-pro" });
-      const result = await model.generateContent(prompt);
-      const summary = result.response.text();
 
-      // 6. Return result
-      return { summary };
-    } catch (err) {
-      console.error("Gemini API error:", err);
-      throw new HttpsError("internal", "AI summarization failed.");
+      const apiKey = HF_API_KEY.value();
+
+      console.log("API key present:", !!apiKey);
+
+      const prompt = `Analyze these personal daily reflections and provide:
+
+- Dominant emotional tone
+
+- Recurring patterns
+
+- Concise summary
+
+Be neutral and analytical, no advice.
+
+Reflections:
+
+${reflections.join("\n---\n")}
+
+Summary:`;
+
+      console.log("Calling Hugging Face API...");
+
+      
+
+      // Using Hugging Face's free inference API
+
+      const response = await fetch(
+
+        "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2",
+
+        {
+
+          method: "POST",
+
+          headers: {
+
+            "Authorization": `Bearer ${apiKey}`,
+
+            "Content-Type": "application/json",
+
+          },
+
+          body: JSON.stringify({
+
+            inputs: prompt,
+
+            parameters: {
+
+              max_new_tokens: 250,
+
+              temperature: 0.7,
+
+              return_full_text: false
+
+            }
+
+          })
+
+        }
+
+      );
+
+      if (!response.ok) {
+
+        const errorText = await response.text();
+
+        console.error("API Error:", response.status, errorText);
+
+        throw new Error(`API error: ${response.status} - ${errorText}`);
+
+      }
+
+      const data = await response.json();
+
+      console.log("API call successful!");
+
+      let summary = "";
+
+      if (Array.isArray(data) && data[0]?.generated_text) {
+
+        summary = data[0].generated_text.trim();
+
+      } else if (data.generated_text) {
+
+        summary = data.generated_text.trim();
+
+      } else {
+
+        throw new Error("Unexpected API response format");
+
+      }
+
+      console.log("Summary generated, length:", summary.length);
+
+      return {
+
+        summary: summary
+
+      };
+
+    } catch (error) {
+
+      console.error("=== ERROR ===");
+
+      console.error("Error message:", error.message);
+
+      console.error("Full error:", error);
+
+      
+
+      throw new HttpsError(
+
+        "internal",
+
+        `Failed to generate summary: ${error.message}`
+
+      );
+
     }
+
   }
+
 );
 
