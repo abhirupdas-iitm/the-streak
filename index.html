@@ -25,10 +25,7 @@
       <button id="markBtn">Mark Today</button>
       <button id="reflectBtn">Reflection</button>
       <button id="calendarBtn">📅</button>
-
-      <!-- ✅ NEW: AI SUMMARY BUTTON -->
       <button id="aiSummaryBtn">AI Summary</button>
-
       <button id="logoutBtn">Sign Out</button>
     </div>
   </div>
@@ -59,11 +56,23 @@
   </div>
 </div>
 
+<!-- ✅ NEW: AI SUMMARY MODAL -->
+<div id="aiSummaryOverlay" class="overlay" style="display:none;">
+  <div class="summary-box">
+    <div class="summary-header">
+      <h3>📊 Reflection Analysis</h3>
+      <button id="closeSummaryBtn">✕</button>
+    </div>
+    <div class="summary-content">
+      <canvas id="emotionChart" width="200" height="200"></canvas>
+      <div id="summaryText"></div>
+    </div>
+  </div>
+</div>
+
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-
-<!-- ✅ REQUIRED for callable functions (v8 compatible) -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-functions.js"></script>
 
 <script>
@@ -81,9 +90,7 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 const functions = firebase.app().functions("us-central1");
 
-/* ✅ Callable reference */
-const summarizeReflections =
-  functions.httpsCallable("summarizeReflections");
+const summarizeReflections = functions.httpsCallable("summarizeReflections");
 
 const authSection = document.getElementById("auth-section");
 const appSection = document.getElementById("app-section");
@@ -96,16 +103,10 @@ const loginBtn = document.getElementById("loginBtn");
 const forgotBtn = document.getElementById("forgotBtn");
 const authMessage = document.getElementById("authMessage");
 
-/* ===============================
-   AUTH BUTTON LOGIC (FIXED)
-================================ */
-
+/* AUTH BUTTON LOGIC */
 signupBtn.onclick = async () => {
   try {
-    await auth.createUserWithEmailAndPassword(
-      emailInput.value,
-      passwordInput.value
-    );
+    await auth.createUserWithEmailAndPassword(emailInput.value, passwordInput.value);
     authMessage.innerText = "Account created successfully!";
   } catch (err) {
     authMessage.innerText = err.message;
@@ -114,10 +115,7 @@ signupBtn.onclick = async () => {
 
 loginBtn.onclick = async () => {
   try {
-    await auth.signInWithEmailAndPassword(
-      emailInput.value,
-      passwordInput.value
-    );
+    await auth.signInWithEmailAndPassword(emailInput.value, passwordInput.value);
     authMessage.innerText = "";
   } catch (err) {
     authMessage.innerText = err.message;
@@ -127,13 +125,11 @@ loginBtn.onclick = async () => {
 forgotBtn.onclick = async () => {
   try {
     await auth.sendPasswordResetEmail(emailInput.value);
-    authMessage.innerText =
-      "Password reset email sent!Please check you inbox! (even the spam folders)";
+    authMessage.innerText = "Password reset email sent! Please check your inbox! (even the spam folders)";
   } catch (err) {
     authMessage.innerText = err.message;
   }
 };
-
 
 const markBtn = document.getElementById("markBtn");
 const reflectBtn = document.getElementById("reflectBtn");
@@ -143,8 +139,11 @@ const aiSummaryBtn = document.getElementById("aiSummaryBtn");
 
 const reflectionModal = document.getElementById("reflectionModal");
 const calendarOverlay = document.getElementById("calendarOverlay");
+const aiSummaryOverlay = document.getElementById("aiSummaryOverlay");
+
 const reflectionText = document.getElementById("reflectionText");
 const saveBtn = document.getElementById("saveReflectionBtn");
+const closeSummaryBtn = document.getElementById("closeSummaryBtn");
 
 const calendarGrid = document.getElementById("calendarGrid");
 const prevMonthBtn = document.getElementById("prevMonthBtn");
@@ -157,12 +156,14 @@ function todayDate() {
   d.setHours(0,0,0,0);
   return d;
 }
+
 function dateKey(d) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 }
 
 let calendarYear, calendarMonth;
 let activeDate = null;
+let currentStreak = 0;
 
 const MONTHS = [
   "January","February","March","April","May","June",
@@ -182,8 +183,8 @@ auth.onAuthStateChanged(async user => {
   const snap = await ref.get();
   if (!snap.exists) await ref.set({ streak: 0, lastCheck: null });
 
-  streakDisplay.innerText =
-    `Current streak: ${snap.data().streak} days`;
+  currentStreak = snap.data().streak;
+  streakDisplay.innerText = `Current streak: ${currentStreak} days`;
 });
 
 markBtn.onclick = async () => {
@@ -196,16 +197,14 @@ markBtn.onclick = async () => {
     return;
   }
 
-  const yesterdayStr =
-    new Date(Date.now() - 86400000).toDateString();
+  const yesterdayStr = new Date(Date.now() - 86400000).toDateString();
 
-  const streak =
-    data.lastCheck === yesterdayStr || data.lastCheck === null
-      ? data.streak + 1 : 1;
+  const streak = data.lastCheck === yesterdayStr || data.lastCheck === null
+    ? data.streak + 1 : 1;
 
   await ref.update({ streak, lastCheck: todayStr });
-  streakDisplay.innerText =
-    `Current streak: ${streak} days`;
+  currentStreak = streak;
+  streakDisplay.innerText = `Current streak: ${streak} days`;
 };
 
 reflectBtn.onclick = () => {
@@ -217,8 +216,7 @@ reflectBtn.onclick = () => {
 
 function openReflection(date) {
   activeDate = date;
-  reflectionText.value =
-    localStorage.getItem("reflection-" + dateKey(date)) || "";
+  reflectionText.value = localStorage.getItem("reflection-" + dateKey(date)) || "";
 
   const isToday = dateKey(date) === dateKey(todayDate());
   reflectionText.disabled = !isToday;
@@ -228,10 +226,7 @@ function openReflection(date) {
 }
 
 saveBtn.onclick = () => {
-  localStorage.setItem(
-    "reflection-" + dateKey(activeDate),
-    reflectionText.value
-  );
+  localStorage.setItem("reflection-" + dateKey(activeDate), reflectionText.value);
   closeOverlays();
 };
 
@@ -304,16 +299,14 @@ nextMonthBtn.onclick = () => {
 async function renderCalendar() {
   calendarGrid.innerHTML = "";
 
-  const snap = await db.collection("users")
-    .doc(auth.currentUser.uid).get();
+  const snap = await db.collection("users").doc(auth.currentUser.uid).get();
   const streak = snap.data().streak;
 
   const today = todayDate();
   const start = new Date(today);
   start.setDate(today.getDate() - streak + 1);
 
-  const daysInMonth =
-    new Date(calendarYear, calendarMonth + 1, 0).getDate();
+  const daysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
 
   for (let d = 1; d <= daysInMonth; d++) {
     const date = new Date(calendarYear, calendarMonth, d);
@@ -339,6 +332,7 @@ async function renderCalendar() {
 function closeOverlays() {
   reflectionModal.style.display = "none";
   calendarOverlay.style.display = "none";
+  aiSummaryOverlay.style.display = "none";
 }
 
 document.querySelectorAll(".overlay").forEach(ov => {
@@ -351,36 +345,113 @@ document.addEventListener("keydown", e => {
   if (e.key === "Escape") closeOverlays();
 });
 
+closeSummaryBtn.onclick = closeOverlays;
+
 logoutBtn.onclick = () => auth.signOut();
 
-/* =====================================================
-   ✅ AI SUMMARY INTEGRATION (MINIMAL)
-===================================================== */
+/* ✅ AI SUMMARY WITH CHART & STREAK FILTERING */
 
-function getAllReflections() {
+function getStreakReflections() {
+  const today = todayDate();
+  const start = new Date(today);
+  start.setDate(today.getDate() - currentStreak + 1);
+
   const reflections = [];
-  for (let key in localStorage) {
-    if (key.startsWith("reflection-")) {
-      reflections.push(localStorage.getItem(key));
+  
+  for (let i = 0; i < currentStreak; i++) {
+    const date = new Date(start);
+    date.setDate(start.getDate() + i);
+    const key = "reflection-" + dateKey(date);
+    const text = localStorage.getItem(key);
+    if (text && text.trim()) {
+      reflections.push(text);
     }
   }
+  
   return reflections;
+}
+
+function drawPieChart(positive, neutral, negative) {
+  const canvas = document.getElementById("emotionChart");
+  const ctx = canvas.getContext("2d");
+  
+  const total = positive + neutral + negative;
+  if (total === 0) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#00ff99';
+    ctx.font = 'bold 14px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('No emotions detected', 100, 100);
+    return;
+  }
+  
+  const centerX = 100;
+  const centerY = 100;
+  const radius = 80;
+  
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  const colors = ['#00ff99', '#ffaa00', '#ff4444'];
+  const labels = ['Positive', 'Neutral', 'Negative'];
+  const values = [positive, neutral, negative];
+  
+  let currentAngle = -Math.PI / 2;
+  
+  values.forEach((value, index) => {
+    const sliceAngle = (value / total) * 2 * Math.PI;
+    
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY);
+    ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + sliceAngle);
+    ctx.closePath();
+    ctx.fillStyle = colors[index];
+    ctx.fill();
+    
+    const labelAngle = currentAngle + sliceAngle / 2;
+    const labelX = centerX + Math.cos(labelAngle) * (radius + 30);
+    const labelY = centerY + Math.sin(labelAngle) * (radius + 30);
+    
+    ctx.fillStyle = colors[index];
+    ctx.font = 'bold 12px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(labels[index], labelX, labelY);
+    ctx.font = '10px Arial';
+    ctx.fillText(`${Math.round(value/total*100)}%`, labelX, labelY + 15);
+    
+    currentAngle += sliceAngle;
+  });
 }
 
 aiSummaryBtn.onclick = async () => {
   try {
-    const reflections = getAllReflections();
+    const reflections = getStreakReflections();
+    
     if (reflections.length === 0) {
-      alert("No reflections to summarize.");
+      alert("No reflections found in your current streak!");
       return;
     }
 
+    aiSummaryOverlay.style.display = "flex";
+    document.getElementById("summaryText").innerHTML = "<p>Analyzing your reflections...</p>";
+
     const res = await summarizeReflections({ reflections });
-    alert(res.data.summary);
+    
+    const summary = res.data.summary;
+    const emotions = res.data.emotions;
+    
+    document.getElementById("summaryText").innerHTML = 
+      `<div class="summary-stats">
+        <p><strong>Streak Days:</strong> ${currentStreak}</p>
+        <p><strong>Reflections Analyzed:</strong> ${reflections.length}</p>
+      </div>
+      <div class="summary-detail">${summary.replace(/\n/g, '<br>')}</div>`;
+    
+    drawPieChart(emotions.positive, emotions.neutral, emotions.negative);
 
   } catch (err) {
     console.error(err);
     alert("Failed to generate AI summary.");
+    closeOverlays();
   }
 };
 </script>

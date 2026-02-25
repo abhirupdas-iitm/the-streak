@@ -152,3 +152,103 @@ button:hover {
   padding: 4px 8px;
 }
 
+/* ✅ AI SUMMARY MODAL */
+.summary-box {
+  background: #111;
+  width: 90%;
+  max-width: 600px;
+  max-height: 80vh;
+  padding: 0;
+  border-radius: 12px;
+  box-shadow: 0 0 30px rgba(0,255,150,0.3);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.summary-header {
+  background: linear-gradient(135deg, #00ff99 0%, #00cc77 100%);
+  color: #111;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.summary-header h3 {
+  margin: 0;
+  font-size: 1.4em;
+}
+
+#closeSummaryBtn {
+  background: rgba(0,0,0,0.2);
+  color: #111;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 1.2em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+}
+
+#closeSummaryBtn:hover {
+  background: rgba(0,0,0,0.3);
+}
+
+.summary-content {
+  padding: 30px;
+  overflow-y: auto;
+  max-height: calc(80vh - 80px);
+}
+
+#emotionChart {
+  display: block;
+  margin: 0 auto 30px;
+}
+
+.summary-stats {
+  background: rgba(0,255,150,0.1);
+  border: 1px solid rgba(0,255,150,0.3);
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 20px;
+}
+
+.summary-stats p {
+  margin: 8px 0;
+  color: #00ff99;
+  font-size: 0.95em;
+}
+
+.summary-detail {
+  color: #e8e8e8;
+  line-height: 1.6;
+  text-align: left;
+  white-space: pre-wrap;
+}
+
+.summary-detail strong {
+  color: #00ff99;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 600px) {
+  .summary-box {
+    width: 95%;
+    max-height: 90vh;
+  }
+  
+  .summary-content {
+    padding: 20px;
+  }
+  
+  #emotionChart {
+    width: 180px;
+    height: 180px;
+  }
+}
