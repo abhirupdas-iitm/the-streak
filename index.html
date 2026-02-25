@@ -64,7 +64,28 @@
       <button id="closeSummaryBtn">✕</button>
     </div>
     <div class="summary-content">
-      <canvas id="emotionChart" width="200" height="200"></canvas>
+      <!-- Date Range Selector -->
+      <div class="date-range-selector">
+        <label>
+          <input type="radio" name="dateRange" value="streak" checked> 
+          Current Streak (${currentStreak} days)
+        </label>
+        <label>
+          <input type="radio" name="dateRange" value="7"> 
+          Last 7 Days
+        </label>
+        <label>
+          <input type="radio" name="dateRange" value="30"> 
+          Last 30 Days
+        </label>
+        <label>
+          <input type="radio" name="dateRange" value="all"> 
+          All Time
+        </label>
+        <button id="applyDateRangeBtn">Apply</button>
+      </div>
+      
+      <canvas id="emotionChart" width="200" height="220"></canvas>
       <div id="summaryText"></div>
     </div>
   </div>
@@ -349,22 +370,49 @@ closeSummaryBtn.onclick = closeOverlays;
 
 logoutBtn.onclick = () => auth.signOut();
 
-/* ✅ AI SUMMARY WITH CHART & STREAK FILTERING */
+/* ✅ AI SUMMARY WITH CHART & DATE RANGE FILTERING */
 
-function getStreakReflections() {
+function getReflectionsByRange(range) {
   const today = todayDate();
-  const start = new Date(today);
-  start.setDate(today.getDate() - currentStreak + 1);
-
   const reflections = [];
+  let startDate;
   
-  for (let i = 0; i < currentStreak; i++) {
-    const date = new Date(start);
-    date.setDate(start.getDate() + i);
-    const key = "reflection-" + dateKey(date);
-    const text = localStorage.getItem(key);
-    if (text && text.trim()) {
-      reflections.push(text);
+  if (range === 'streak') {
+    startDate = new Date(today);
+    startDate.setDate(today.getDate() - currentStreak + 1);
+    
+    for (let i = 0; i < currentStreak; i++) {
+      const date = new Date(startDate);
+      date.setDate(startDate.getDate() + i);
+      const key = "reflection-" + dateKey(date);
+      const text = localStorage.getItem(key);
+      if (text && text.trim()) {
+        reflections.push(text);
+      }
+    }
+  } else if (range === 'all') {
+    for (let key in localStorage) {
+      if (key.startsWith("reflection-")) {
+        const text = localStorage.getItem(key);
+        if (text && text.trim()) {
+          reflections.push(text);
+        }
+      }
+    }
+  } else {
+    // Last N days
+    const days = parseInt(range);
+    startDate = new Date(today);
+    startDate.setDate(today.getDate() - days + 1);
+    
+    for (let i = 0; i < days; i++) {
+      const date = new Date(startDate);
+      date.setDate(startDate.getDate() + i);
+      const key = "reflection-" + dateKey(date);
+      const text = localStorage.getItem(key);
+      if (text && text.trim()) {
+        reflections.push(text);
+      }
     }
   }
   
@@ -387,7 +435,7 @@ function drawPieChart(positive, neutral, negative) {
   
   const centerX = 100;
   const centerY = 100;
-  const radius = 80;
+  const radius = 70;
   
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   
@@ -397,6 +445,7 @@ function drawPieChart(positive, neutral, negative) {
   
   let currentAngle = -Math.PI / 2;
   
+  // Draw pie slices
   values.forEach((value, index) => {
     const sliceAngle = (value / total) * 2 * Math.PI;
     
@@ -407,31 +456,68 @@ function drawPieChart(positive, neutral, negative) {
     ctx.fillStyle = colors[index];
     ctx.fill();
     
-    const labelAngle = currentAngle + sliceAngle / 2;
-    const labelX = centerX + Math.cos(labelAngle) * (radius + 30);
-    const labelY = centerY + Math.sin(labelAngle) * (radius + 30);
-    
-    ctx.fillStyle = colors[index];
-    ctx.font = 'bold 12px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText(labels[index], labelX, labelY);
-    ctx.font = '10px Arial';
-    ctx.fillText(`${Math.round(value/total*100)}%`, labelX, labelY + 15);
-    
     currentAngle += sliceAngle;
+  });
+  
+  // Draw labels below the chart
+  const legendY = 170;
+  const legendSpacing = 60;
+  
+  values.forEach((value, index) => {
+    const x = 30 + (index * legendSpacing);
+    
+    // Draw color box
+    ctx.fillStyle = colors[index];
+    ctx.fillRect(x, legendY, 12, 12);
+    
+    // Draw label text
+    ctx.fillStyle = colors[index];
+    ctx.font = 'bold 11px Arial';
+    ctx.textAlign = 'left';
+    ctx.fillText(labels[index], x + 16, legendY + 10);
+    
+    // Draw percentage
+    ctx.font = '10px Arial';
+    ctx.fillText(`${Math.round(value/total*100)}%`, x + 16, legendY + 22);
   });
 }
 
+let currentDateRange = 'streak';
+
 aiSummaryBtn.onclick = async () => {
+  currentDateRange = 'streak';
+  const streakRadio = document.querySelector('input[name="dateRange"][value="streak"]');
+  if (streakRadio) streakRadio.checked = true;
+  aiSummaryOverlay.style.display = "flex";
+  await loadSummary();
+};
+
+// Add event listener after modal is shown
+setTimeout(() => {
+  const applyBtn = document.getElementById('applyDateRangeBtn');
+  if (applyBtn) {
+    applyBtn.onclick = async () => {
+      const selected = document.querySelector('input[name="dateRange"]:checked');
+      if (selected) {
+        currentDateRange = selected.value;
+        await loadSummary();
+      }
+    };
+  }
+}, 100);
+
+async function loadSummary() {
   try {
-    const reflections = getStreakReflections();
+    const reflections = getReflectionsByRange(currentDateRange);
     
     if (reflections.length === 0) {
-      alert("No reflections found in your current streak!");
+      document.getElementById("summaryText").innerHTML = "<p>No reflections found in the selected date range!</p>";
+      const canvas = document.getElementById("emotionChart");
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
       return;
     }
 
-    aiSummaryOverlay.style.display = "flex";
     document.getElementById("summaryText").innerHTML = "<p>Analyzing your reflections...</p>";
 
     const res = await summarizeReflections({ reflections });
@@ -439,9 +525,18 @@ aiSummaryBtn.onclick = async () => {
     const summary = res.data.summary;
     const emotions = res.data.emotions;
     
+    let rangeText = '';
+    if (currentDateRange === 'streak') {
+      rangeText = `Current Streak (${currentStreak} days)`;
+    } else if (currentDateRange === 'all') {
+      rangeText = 'All Time';
+    } else {
+      rangeText = `Last ${currentDateRange} Days`;
+    }
+    
     document.getElementById("summaryText").innerHTML = 
       `<div class="summary-stats">
-        <p><strong>Streak Days:</strong> ${currentStreak}</p>
+        <p><strong>Date Range:</strong> ${rangeText}</p>
         <p><strong>Reflections Analyzed:</strong> ${reflections.length}</p>
       </div>
       <div class="summary-detail">${summary.replace(/\n/g, '<br>')}</div>`;
@@ -453,7 +548,7 @@ aiSummaryBtn.onclick = async () => {
     alert("Failed to generate AI summary.");
     closeOverlays();
   }
-};
+}
 </script>
 
 </body>

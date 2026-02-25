@@ -206,6 +206,49 @@ button:hover {
   max-height: calc(80vh - 80px);
 }
 
+/* Date Range Selector */
+.date-range-selector {
+  background: rgba(0,255,150,0.05);
+  border: 1px solid rgba(0,255,150,0.2);
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 20px;
+}
+
+.date-range-selector label {
+  display: block;
+  color: #e8e8e8;
+  margin: 8px 0;
+  cursor: pointer;
+  font-size: 0.9em;
+}
+
+.date-range-selector input[type="radio"] {
+  margin-right: 8px;
+  cursor: pointer;
+  width: auto;
+}
+
+.date-range-selector label:hover {
+  color: #00ff99;
+}
+
+#applyDateRangeBtn {
+  background: #00ff99;
+  color: #111;
+  font-weight: bold;
+  padding: 8px 20px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  margin-top: 10px;
+  width: 100%;
+}
+
+#applyDateRangeBtn:hover {
+  background: #00cc77;
+}
+
 #emotionChart {
   display: block;
   margin: 0 auto 30px;
@@ -249,6 +292,6 @@ button:hover {
   
   #emotionChart {
     width: 180px;
-    height: 180px;
+    height: 200px;
   }
 }
