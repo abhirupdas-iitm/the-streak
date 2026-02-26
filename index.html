@@ -1,617 +1,369 @@
 <!DOCTYPE html>
-
 <html lang="en">
-
 <head>
-
   <meta charset="UTF-8" />
-
   <title>The Streak</title>
-
   <link rel="stylesheet" href="styles.css" />
-
 </head>
-
 <body>
 
 <div class="container">
-
   <h2>The Streak Tracker</h2>
 
   <div id="auth-section">
-
     <input id="email" type="email" placeholder="Email" />
-
     <input id="password" type="password" placeholder="Password" />
-
     <button id="signupBtn">Sign Up</button>
-
     <button id="loginBtn">Log In</button>
-
     <button id="forgotBtn">Forgot Password?</button>
-
     <p id="authMessage"></p>
-
   </div>
 
   <div id="app-section" style="display:none;">
-
     <p id="streakDisplay">Loading…</p>
-
     <div class="actions">
-
       <button id="markBtn">Mark Today</button>
-
       <button id="reflectBtn">Reflection</button>
-
       <button id="calendarBtn">📅</button>
-
       <button id="aiSummaryBtn">AI Summary</button>
-
       <button id="logoutBtn">Sign Out</button>
-
     </div>
-
   </div>
-
 </div>
 
 <div id="reflectionModal" class="overlay" style="display:none;">
-
   <div class="modal-box">
-
     <textarea id="reflectionText" rows="6"
-
       placeholder="What do you want to write today?"></textarea>
-
     <button id="saveReflectionBtn">Save</button>
-
   </div>
-
 </div>
 
 <div id="calendarOverlay" class="overlay" style="display:none;">
-
   <div class="calendar-box">
-
     <div class="calendar-header">
-
       <button id="prevMonthBtn">◀</button>
 
       <div class="calendar-selectors">
-
         <select id="monthSelect"></select>
-
         <select id="yearSelect"></select>
-
       </div>
 
       <button id="nextMonthBtn">▶</button>
-
     </div>
 
     <div class="calendar-grid" id="calendarGrid"></div>
-
   </div>
-
 </div>
 
 <!-- ✅ NEW: AI SUMMARY MODAL -->
-
 <div id="aiSummaryOverlay" class="overlay" style="display:none;">
-
   <div class="summary-box">
-
     <div class="summary-header">
-
       <h3>📊 Reflection Analysis</h3>
-
       <button id="closeSummaryBtn">✕</button>
-
     </div>
-
     <div class="summary-content">
-
       <!-- Date Range Selector -->
-
       <div class="date-range-selector">
-
         <div class="date-inputs">
-
           <div class="date-input-group">
-
             <label>From Date:</label>
-
             <input type="date" id="startDate" />
-
           </div>
-
           <div class="date-input-group">
-
             <label>To Date:</label>
-
             <input type="date" id="endDate" />
-
           </div>
-
         </div>
-
         <div class="quick-options">
-
           <button class="quick-btn" data-days="7">Last 7 Days</button>
-
           <button class="quick-btn" data-days="30">Last 30 Days</button>
-
           <button class="quick-btn" data-days="streak">Current Streak</button>
-
           <button class="quick-btn" data-days="all">All Time</button>
-
         </div>
-
         <button id="applyDateRangeBtn">Analyze</button>
-
       </div>
-
       
-
       <canvas id="emotionChart" width="200" height="220"></canvas>
-
       <div id="summaryText"></div>
-
     </div>
-
   </div>
-
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-functions.js"></script>
 
 <script>
-
 const firebaseConfig = {
-
   apiKey: "AIzaSyANFF4TkIpc3vB3_jwA5xK6rh4EryigVVI",
-
   authDomain: "the-streak2.firebaseapp.com",
-
   projectId: "the-streak2",
-
   storageBucket: "the-streak2.firebasestorage.app",
-
   messagingSenderId: "377658825110",
-
   appId: "1:377658825110:web:b7b3c7b407af8a9beda5b7"
-
 };
-
 firebase.initializeApp(firebaseConfig);
 
 const auth = firebase.auth();
-
 const db = firebase.firestore();
-
 const functions = firebase.app().functions("us-central1");
 
 const summarizeReflections = functions.httpsCallable("summarizeReflections");
 
 const authSection = document.getElementById("auth-section");
-
 const appSection = document.getElementById("app-section");
-
 const streakDisplay = document.getElementById("streakDisplay");
 
 const emailInput = document.getElementById("email");
-
 const passwordInput = document.getElementById("password");
-
 const signupBtn = document.getElementById("signupBtn");
-
 const loginBtn = document.getElementById("loginBtn");
-
 const forgotBtn = document.getElementById("forgotBtn");
-
 const authMessage = document.getElementById("authMessage");
 
 /* AUTH BUTTON LOGIC */
-
 signupBtn.onclick = async () => {
-
   try {
-
     await auth.createUserWithEmailAndPassword(emailInput.value, passwordInput.value);
-
     authMessage.innerText = "Account created successfully!";
-
   } catch (err) {
-
     authMessage.innerText = err.message;
-
   }
-
 };
 
 loginBtn.onclick = async () => {
-
   try {
-
     await auth.signInWithEmailAndPassword(emailInput.value, passwordInput.value);
-
     authMessage.innerText = "";
-
   } catch (err) {
-
     authMessage.innerText = err.message;
-
   }
-
 };
 
 forgotBtn.onclick = async () => {
-
   try {
-
     await auth.sendPasswordResetEmail(emailInput.value);
-
     authMessage.innerText = "Password reset email sent! Please check your inbox! (even the spam folders)";
-
   } catch (err) {
-
     authMessage.innerText = err.message;
-
   }
-
 };
 
 const markBtn = document.getElementById("markBtn");
-
 const reflectBtn = document.getElementById("reflectBtn");
-
 const calendarBtn = document.getElementById("calendarBtn");
-
 const logoutBtn = document.getElementById("logoutBtn");
-
 const aiSummaryBtn = document.getElementById("aiSummaryBtn");
 
 const reflectionModal = document.getElementById("reflectionModal");
-
 const calendarOverlay = document.getElementById("calendarOverlay");
-
 const aiSummaryOverlay = document.getElementById("aiSummaryOverlay");
 
 const reflectionText = document.getElementById("reflectionText");
-
 const saveBtn = document.getElementById("saveReflectionBtn");
-
 const closeSummaryBtn = document.getElementById("closeSummaryBtn");
 
 const calendarGrid = document.getElementById("calendarGrid");
-
 const prevMonthBtn = document.getElementById("prevMonthBtn");
-
 const nextMonthBtn = document.getElementById("nextMonthBtn");
-
 const monthSelect = document.getElementById("monthSelect");
-
 const yearSelect = document.getElementById("yearSelect");
 
 function todayDate() {
-
   const d = new Date();
-
   d.setHours(0,0,0,0);
-
   return d;
-
 }
 
 function dateKey(d) {
-
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-
 }
 
 let calendarYear, calendarMonth;
-
 let activeDate = null;
-
 let currentStreak = 0;
 
 const MONTHS = [
-
   "January","February","March","April","May","June",
-
   "July","August","September","October","November","December"
-
 ];
 
 auth.onAuthStateChanged(async user => {
-
   if (!user) {
-
     authSection.style.display = "block";
-
     appSection.style.display = "none";
-
     return;
-
   }
-
   authSection.style.display = "none";
-
   appSection.style.display = "block";
 
   const ref = db.collection("users").doc(user.uid);
-
   const snap = await ref.get();
-
   if (!snap.exists) await ref.set({ streak: 0, lastCheck: null });
 
   currentStreak = snap.data().streak;
-
   streakDisplay.innerText = `Current streak: ${currentStreak} days`;
-
 });
 
 markBtn.onclick = async () => {
-
   const ref = db.collection("users").doc(auth.currentUser.uid);
-
   const data = (await ref.get()).data();
 
   const todayStr = new Date().toDateString();
-
   if (data.lastCheck === todayStr) {
-
     alert("Already marked for today!");
-
     return;
-
   }
 
   const yesterdayStr = new Date(Date.now() - 86400000).toDateString();
 
   const streak = data.lastCheck === yesterdayStr || data.lastCheck === null
-
     ? data.streak + 1 : 1;
 
   await ref.update({ streak, lastCheck: todayStr });
-
   currentStreak = streak;
-
   streakDisplay.innerText = `Current streak: ${streak} days`;
-
 };
 
 reflectBtn.onclick = () => {
-
   const today = todayDate();
-
   calendarYear = today.getFullYear();
-
   calendarMonth = today.getMonth();
-
   openReflection(today);
-
 };
 
 function openReflection(date) {
-
   activeDate = date;
-
   reflectionText.value = localStorage.getItem("reflection-" + dateKey(date)) || "";
 
   const isToday = dateKey(date) === dateKey(todayDate());
-
   reflectionText.disabled = !isToday;
-
   saveBtn.style.display = isToday ? "block" : "none";
 
   reflectionModal.style.display = "flex";
-
 }
 
 saveBtn.onclick = () => {
-
   localStorage.setItem("reflection-" + dateKey(activeDate), reflectionText.value);
-
   closeOverlays();
-
 };
 
 calendarBtn.onclick = async () => {
-
   const today = todayDate();
-
   calendarYear = today.getFullYear();
-
   calendarMonth = today.getMonth();
-
   initSelectors();
-
   await renderCalendar();
-
   calendarOverlay.style.display = "flex";
-
 };
 
 function initSelectors() {
-
   monthSelect.innerHTML = "";
-
   yearSelect.innerHTML = "";
 
   MONTHS.forEach((m, i) => {
-
     const opt = document.createElement("option");
-
     opt.value = i;
-
     opt.textContent = m;
-
     monthSelect.appendChild(opt);
-
   });
 
   const currentYear = todayDate().getFullYear();
-
   for (let y = currentYear; y >= currentYear - 15; y--) {
-
     const opt = document.createElement("option");
-
     opt.value = y;
-
     opt.textContent = y;
-
     yearSelect.appendChild(opt);
-
   }
 
   syncSelectors();
-
 }
 
 function syncSelectors() {
-
   monthSelect.value = calendarMonth;
-
   yearSelect.value = calendarYear;
-
 }
 
 monthSelect.onchange = () => {
-
   calendarMonth = Number(monthSelect.value);
-
   renderCalendar();
-
 };
 
 yearSelect.onchange = () => {
-
   calendarYear = Number(yearSelect.value);
-
   renderCalendar();
-
 };
 
 prevMonthBtn.onclick = () => {
-
   calendarMonth--;
-
   if (calendarMonth < 0) {
-
     calendarMonth = 11;
-
     calendarYear--;
-
   }
-
   syncSelectors();
-
   renderCalendar();
-
 };
 
 nextMonthBtn.onclick = () => {
-
   calendarMonth++;
-
   if (calendarMonth > 11) {
-
     calendarMonth = 0;
-
     calendarYear++;
-
   }
-
   syncSelectors();
-
   renderCalendar();
-
 };
 
 async function renderCalendar() {
-
   calendarGrid.innerHTML = "";
 
   const snap = await db.collection("users").doc(auth.currentUser.uid).get();
-
   const streak = snap.data().streak;
 
   const today = todayDate();
-
   const start = new Date(today);
-
   start.setDate(today.getDate() - streak + 1);
 
   const daysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
 
   for (let d = 1; d <= daysInMonth; d++) {
-
     const date = new Date(calendarYear, calendarMonth, d);
-
     date.setHours(0,0,0,0);
 
     const cell = document.createElement("div");
-
     cell.className = "calendar-day";
-
     cell.innerText = d;
 
     if (date < start || date > today) {
-
       cell.classList.add("past");
-
     } else {
-
       cell.classList.add("active");
-
       cell.onclick = () => {
-
         calendarOverlay.style.display = "none";
-
         openReflection(date);
-
       };
-
     }
-
     calendarGrid.appendChild(cell);
-
   }
-
 }
 
 function closeOverlays() {
-
   reflectionModal.style.display = "none";
-
   calendarOverlay.style.display = "none";
-
   aiSummaryOverlay.style.display = "none";
-
 }
 
 document.querySelectorAll(".overlay").forEach(ov => {
-
   ov.addEventListener("click", e => {
-
     if (e.target === ov) closeOverlays();
-
   });
-
 });
 
 document.addEventListener("keydown", e => {
-
   if (e.key === "Escape") closeOverlays();
-
 });
 
 closeSummaryBtn.onclick = closeOverlays;
@@ -621,373 +373,203 @@ logoutBtn.onclick = () => auth.signOut();
 /* ✅ AI SUMMARY WITH CHART & DATE RANGE FILTERING */
 
 function getReflectionsByDateRange(startDate, endDate) {
-
   const reflections = [];
-
   
-
   const current = new Date(startDate);
-
   current.setHours(0,0,0,0);
-
   
-
   const end = new Date(endDate);
-
   end.setHours(0,0,0,0);
-
   
-
+  console.log("Getting reflections from", dateKey(current), "to", dateKey(end));
+  
   while (current <= end) {
-
     const key = "reflection-" + dateKey(current);
-
     const text = localStorage.getItem(key);
-
+    
+    console.log("Checking", key, "->", text ? "FOUND" : "NOT FOUND");
+    
     if (text && text.trim()) {
-
       reflections.push(text);
-
     }
-
     current.setDate(current.getDate() + 1);
-
   }
-
   
-
+  console.log("Total reflections found:", reflections.length);
   return reflections;
-
 }
 
 function drawPieChart(positive, neutral, negative) {
-
   const canvas = document.getElementById("emotionChart");
-
   const ctx = canvas.getContext("2d");
-
   
-
   const total = positive + neutral + negative;
-
   if (total === 0) {
-
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
     ctx.fillStyle = '#00ff99';
-
     ctx.font = 'bold 14px Arial';
-
     ctx.textAlign = 'center';
-
     ctx.fillText('No emotions detected', 100, 100);
-
     return;
-
   }
-
   
-
   const centerX = 100;
-
   const centerY = 100;
-
   const radius = 70;
-
   
-
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-
   
-
   const colors = ['#00ff99', '#ffaa00', '#ff4444'];
-
   const labels = ['Positive', 'Neutral', 'Negative'];
-
   const values = [positive, neutral, negative];
-
   
-
   let currentAngle = -Math.PI / 2;
-
   
-
   // Draw pie slices
-
   values.forEach((value, index) => {
-
     const sliceAngle = (value / total) * 2 * Math.PI;
-
     
-
     ctx.beginPath();
-
     ctx.moveTo(centerX, centerY);
-
     ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + sliceAngle);
-
     ctx.closePath();
-
     ctx.fillStyle = colors[index];
-
     ctx.fill();
-
     
-
     currentAngle += sliceAngle;
-
   });
-
   
-
   // Draw labels below the chart
-
   const legendY = 170;
-
   const legendSpacing = 65;
-
   
-
   values.forEach((value, index) => {
-
     const x = 10 + (index * legendSpacing);
-
     
-
     // Draw color box
-
     ctx.fillStyle = colors[index];
-
     ctx.fillRect(x, legendY, 12, 12);
-
     
-
     // Draw label text
-
     ctx.fillStyle = colors[index];
-
     ctx.font = 'bold 10px Arial';
-
     ctx.textAlign = 'left';
-
     ctx.fillText(labels[index], x + 16, legendY + 10);
-
     
-
     // Draw percentage
-
     ctx.font = '10px Arial';
-
     ctx.fillText(`${Math.round(value/total*100)}%`, x + 16, legendY + 22);
-
   });
-
 }
 
 function setDateRange(days) {
-
   const today = todayDate();
-
   const endDateInput = document.getElementById('endDate');
-
   const startDateInput = document.getElementById('startDate');
-
   
-
   endDateInput.valueAsDate = today;
-
   
-
   if (days === 'streak') {
-
     const start = new Date(today);
-
     start.setDate(today.getDate() - currentStreak + 1);
-
     startDateInput.valueAsDate = start;
-
   } else if (days === 'all') {
-
     // Find earliest reflection
-
     let earliestDate = today;
-
     for (let key in localStorage) {
-
       if (key.startsWith("reflection-")) {
-
         const dateStr = key.replace("reflection-", "");
-
         const parts = dateStr.split('-');
-
         const date = new Date(parts[0], parts[1] - 1, parts[2]);
-
         if (date < earliestDate) earliestDate = date;
-
       }
-
     }
-
     startDateInput.valueAsDate = earliestDate;
-
   } else {
-
     const start = new Date(today);
-
     start.setDate(today.getDate() - days + 1);
-
     startDateInput.valueAsDate = start;
-
   }
-
 }
 
 aiSummaryBtn.onclick = async () => {
-
   aiSummaryOverlay.style.display = "flex";
-
   
-
   // Set default to current streak
-
   setDateRange('streak');
-
   
-
   // Setup quick buttons
-
   document.querySelectorAll('.quick-btn').forEach(btn => {
-
     btn.onclick = (e) => {
-
       e.preventDefault();
-
       const days = btn.getAttribute('data-days');
-
       setDateRange(days);
-
     };
-
   });
-
   
-
   // Setup apply button
-
   document.getElementById('applyDateRangeBtn').onclick = async () => {
-
     await loadSummary();
-
   };
-
   
-
   await loadSummary();
-
 };
 
 async function loadSummary() {
-
   try {
-
     const startDateInput = document.getElementById('startDate');
-
     const endDateInput = document.getElementById('endDate');
-
     
-
     if (!startDateInput.value || !endDateInput.value) {
-
       alert("Please select both start and end dates!");
-
       return;
-
     }
-
     
-
     const startDate = new Date(startDateInput.value);
-
     const endDate = new Date(endDateInput.value);
-
     
-
     if (startDate > endDate) {
-
       alert("Start date must be before end date!");
-
       return;
-
     }
-
     
-
     const reflections = getReflectionsByDateRange(startDate, endDate);
-
     
-
     if (reflections.length === 0) {
-
       document.getElementById("summaryText").innerHTML = "<p>No reflections found in the selected date range!</p>";
-
       const canvas = document.getElementById("emotionChart");
-
       const ctx = canvas.getContext("2d");
-
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-
       return;
-
     }
 
     document.getElementById("summaryText").innerHTML = "<p>Analyzing your reflections...</p>";
 
     const res = await summarizeReflections({ reflections });
-
     
-
     const summary = res.data.summary;
-
     const emotions = res.data.emotions;
-
     
-
     const daysDiff = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
-
     
-
     document.getElementById("summaryText").innerHTML = 
-
       `<div class="summary-stats">
-
         <p><strong>Date Range:</strong> ${startDateInput.value} to ${endDateInput.value}</p>
-
-        <p><strong>Days:</strong> ${daysDiff}</p>
-
-        <p><strong>Reflections Analyzed:</strong> ${reflections.length}</p>
-
+        <p><strong>Days in Range:</strong> ${daysDiff} days</p>
+        <p><strong>Days with Reflections:</strong> ${reflections.length}</p>
+        <p><strong>Completion Rate:</strong> ${Math.round((reflections.length / daysDiff) * 100)}%</p>
       </div>
-
       <div class="summary-detail">${summary.replace(/\n/g, '<br>')}</div>`;
-
     
-
     drawPieChart(emotions.positive, emotions.neutral, emotions.negative);
 
   } catch (err) {
-
     console.error(err);
-
     alert("Failed to generate AI summary.");
-
     closeOverlays();
-
   }
-
 }
-
 </script>
 
 </body>
-
 </html>
