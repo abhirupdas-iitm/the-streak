@@ -26,6 +26,7 @@
       <button id="reflectBtn">Reflection</button>
       <button id="calendarBtn">📆 Calendar</button>
       <button id="aiSummaryBtn">AI Summary</button>
+      <button id="resetBtn">Reset Streak</button>
       <button id="logoutBtn">Sign Out</button>
     </div>
   </div>
@@ -157,6 +158,7 @@ const reflectBtn = document.getElementById("reflectBtn");
 const calendarBtn = document.getElementById("calendarBtn");
 const logoutBtn = document.getElementById("logoutBtn");
 const aiSummaryBtn = document.getElementById("aiSummaryBtn");
+const resetBtn = document.getElementById("resetBtn");
 
 const reflectionModal = document.getElementById("reflectionModal");
 const calendarOverlay = document.getElementById("calendarOverlay");
@@ -369,6 +371,19 @@ document.addEventListener("keydown", e => {
 closeSummaryBtn.onclick = closeOverlays;
 
 logoutBtn.onclick = () => auth.signOut();
+resetBtn.onclick = async () => {
+  if (!confirm("Reset your streak?")) return;
+
+  const ref = db.collection("users").doc(auth.currentUser.uid);
+
+  await ref.update({
+    streak: 0,
+    lastCheck: null
+  });
+
+  currentStreak = 0;
+  streakDisplay.innerText = "Current streak: 0 days";
+};
 
 /* ✅ AI SUMMARY WITH CHART & DATE RANGE FILTERING */
 
