@@ -43,10 +43,17 @@ button {
   border: none;
   cursor: pointer;
   font-weight: bold;
+  transition: box-shadow 0.25s ease, transform 0.2s ease, opacity 0.2s ease;
 }
 
 button:hover {
-  opacity: 0.9;
+  opacity: 1;
+  transform: translateY(-2px) scale(1.04);
+  box-shadow:
+    0 0 8px #00ff99,
+    0 0 20px #00ff99aa,
+    0 0 40px #9b59f680,
+    0 4px 16px rgba(155, 89, 246, 0.35);
 }
 
 /* Actions */
