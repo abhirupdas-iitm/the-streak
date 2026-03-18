@@ -27,61 +27,173 @@ exports.summarizeReflections = onCall(
     try {
       // Simple rule-based analysis
       const allText = reflections.join(" ").toLowerCase();
-      
-      // Emotional tone detection with more words
-      const positiveWords = ['good', 'great', 'maintained', 'hopeful', 'willing', 'happy', 'excited', 'amazing', 'wonderful', 'excellent', 'love', 'enjoyed', 'fun', 'awesome', 'better', 'best', 'nice', 'perfect'];
-      const negativeWords = ['tough', 'hard', 'worried', 'sad', 'falling apart', 'difficult', 'struggle', 'anxious', 'stressed', 'overwhelmed', 'bad', 'terrible', 'hate', 'frustrated', 'worst', 'awful', 'horrible'];
-      const neutralWords = ['going', 'expected', 'maintained', 'okay', 'fine', 'normal', 'usual', 'alright'];
-      
+
+      // ── Positive: only clearly upbeat, energetic, or affirming expressions ──
+      const positiveWords = [
+        'happy', 'excited', 'amazing', 'wonderful', 'excellent', 'love', 'loved',
+        'enjoyed', 'fun', 'awesome', 'fantastic', 'great', 'proud',
+        'grateful', 'thrilled', 'motivated', 'energized', 'confident', 'joyful',
+        'refreshed', 'accomplished', 'inspired', 'optimistic', 'peaceful', 'content',
+        'productive', 'fulfilling', 'rewarding', 'blessed', 'cheerful', 'pumped',
+        'brilliant', 'delighted', 'ecstatic', 'elated', 'enthusiastic', 'hopeful',
+        'pleased', 'relieved', 'satisfied', 'calm', 'focused', 'clear-headed',
+        'on track', 'making progress', 'doing well', 'going well', 'feeling good',
+        'feeling great', 'couldn\'t be better', 'killing it'
+      ];
+
+      // ── Negative single words ──
+      const negativeWords = [
+        'tough', 'hard', 'worried', 'worry', 'worrying', 'sad', 'difficult',
+        'struggle', 'struggling', 'anxious', 'anxiety', 'stressed', 'stress',
+        'overwhelmed', 'bad', 'terrible', 'hate', 'hated', 'frustrated', 'frustrating',
+        'frustration', 'worst', 'awful', 'horrible', 'tired', 'exhausted', 'drained',
+        'burnout', 'lost', 'confused', 'hopeless', 'miserable', 'angry', 'upset',
+        'disappointed', 'disappointing', 'disappointment', 'failing', 'failed', 'failure',
+        'behind', 'unmotivated', 'demotivated', 'low', 'depressed', 'depression',
+        'bleak', 'rough', 'pain', 'painful', 'regret', 'regretted', 'embarrassed',
+        'shame', 'ashamed', 'guilty', 'guilt', 'irritated', 'irritating', 'annoyed',
+        'annoying', 'lonely', 'alone', 'isolated', 'helpless', 'powerless', 'stuck',
+        'trapped', 'overwhelm', 'dread', 'dreading', 'afraid', 'fear', 'scared',
+        'nervous', 'restless', 'unsatisfied', 'unfulfilled', 'unhappy', 'unproductive',
+        'procrastinated', 'procrastinating', 'procrastination', 'lazy', 'sluggish',
+        'sluggishness', 'lethargic', 'lethargy', 'unwell', 'sick', 'ill', 'weak',
+        'wasted', 'useless', 'pointless', 'meaningless', 'worthless', 'insecure',
+        'uncertain', 'doubt', 'doubtful', 'distracted', 'demotivating', 'off',
+        'numb', 'empty', 'hollow', 'disconnected', 'unmotivating', 'struggling',
+        'difficult', 'falling', 'broke', 'broken', 'shattered', 'overwhelmingly',
+        'crying', 'cried', 'tears', 'disappointingly', 'unfortunately', 'unfortunately',
+        'neglected', 'neglect', 'ignored', 'wasted', 'regretting', 'regretful',
+        'mediocre', 'meh', 'blah', 'gloomy', 'moody', 'irritable', 'grumpy',
+        'apathetic', 'apathy', 'indifferent', 'bored', 'boring', 'stagnant',
+        'stagnating', 'going nowhere', 'running low', 'running on empty', 'out of energy'
+      ];
+
+      // ── Negative multi-word phrases (matched with plain includes) ──
+      const negativePhrases = [
+        'falling apart', 'burnt out', 'burned out', 'not good', 'not great',
+        'not okay', 'not fine', 'not well', 'not doing well', 'not feeling well',
+        'not feeling great', 'not feeling good', 'not motivated', 'not productive',
+        'can\'t focus', 'cannot focus', 'couldn\'t focus', 'can\'t concentrate',
+        "couldn't sleep", "can't sleep", 'didn\'t do much', 'didn\'t do anything',
+        'didn\'t feel like', 'don\'t feel like', 'not in the mood', 'off day',
+        'bad day', 'rough day', 'hard day', 'tough day', 'difficult day',
+        'worst day', 'terrible day', 'feel like giving up', 'want to give up',
+        'wanted to give up', 'gave up', 'don\'t care', 'don\'t want to',
+        'didn\'t want to', 'no energy', 'very tired', 'really tired', 'so tired',
+        'barely managed', 'barely did', 'barely keeping', 'hard to stay',
+        'hard to keep', 'hard to get', 'hard to focus', 'hard to do',
+        'fell behind', 'way behind', 'so behind', 'getting worse', 'feel worse',
+        'feeling worse', 'feeling low', 'feeling down', 'feeling bad', 'feeling sad',
+        'feeling anxious', 'feeling stressed', 'feeling overwhelmed', 'feeling lost',
+        'feel lost', 'feel overwhelmed', 'feel stressed', 'feel anxious', 'feel sad',
+        'feel bad', 'feel down', 'feel low', 'feel terrible', 'feel awful',
+        'feel horrible', 'feel empty', 'feel hopeless', 'feel numb', 'feel stuck',
+        'so stressed', 'very stressed', 'really stressed', 'so anxious',
+        'so overwhelmed', 'totally drained', 'completely drained', 'absolutely exhausted',
+        'really struggling', 'really hard', 'really tough', 'really difficult',
+        'not happy', 'not satisfied', 'not enough', 'not doing enough',
+        'wasted the day', 'wasted my day', 'wasted time', 'wasted today',
+        'could have done better', 'could\'ve done better', 'should have done more',
+        'should\'ve done more', 'let myself down', 'let everyone down',
+        'missed the mark', 'didn\'t meet', 'didn\'t hit', 'didn\'t achieve',
+        "wasn't productive", "was not productive", "not my best", "below my best",
+        "off my game", "not at my best", "out of it"
+      ];
+
+      const neutralWords = [
+        'okay', 'fine', 'normal', 'usual', 'alright', 'average', 'moderate',
+        'maintained', 'going', 'expected', 'regular', 'standard', 'so-so', 'decent'
+      ];
+
       let positiveCount = 0;
       let negativeCount = 0;
       let neutralCount = 0;
-      
+
+      // Single-word matching via regex word boundaries
       positiveWords.forEach(word => {
-        const regex = new RegExp('\\b' + word + '\\b', 'gi');
-        const matches = allText.match(regex);
-        if (matches) positiveCount += matches.length;
+        if (word.includes(' ')) {
+          // multi-word positive phrases
+          if (allText.includes(word)) positiveCount++;
+        } else {
+          const regex = new RegExp('\\b' + word.replace(/[-']/g, '\\$&') + '\\b', 'gi');
+          const matches = allText.match(regex);
+          if (matches) positiveCount += matches.length;
+        }
       });
-      
+
       negativeWords.forEach(word => {
-        const regex = new RegExp('\\b' + word + '\\b', 'gi');
+        const regex = new RegExp('\\b' + word.replace(/[-']/g, '\\$&') + '\\b', 'gi');
         const matches = allText.match(regex);
         if (matches) negativeCount += matches.length;
       });
-      
+
+      // Multi-word negative phrases — use plain includes for reliability
+      negativePhrases.forEach(phrase => {
+        if (allText.includes(phrase)) negativeCount += 2; // weight phrases more heavily
+      });
+
       neutralWords.forEach(word => {
-        const regex = new RegExp('\\b' + word + '\\b', 'gi');
+        const regex = new RegExp('\\b' + word.replace(/[-']/g, '\\$&') + '\\b', 'gi');
         const matches = allText.match(regex);
         if (matches) neutralCount += matches.length;
       });
-      
+
       // Ensure at least some distribution
       if (positiveCount === 0 && negativeCount === 0 && neutralCount === 0) {
         neutralCount = 1;
       }
-      
+
+      // ── Thresholds (corrected for positive bias) ──
+      // Positive: must dominate by 2.5x AND beat neutral — strong bar
+      // Negative: only needs a small 10% edge over positive to be flagged
+      // Mixed-negative: kicks in at near-parity (negative ≥ 70% of positive)
       let tone = "";
-      if (positiveCount > negativeCount * 1.5) {
+      let toneKey = "";
+      if (positiveCount > negativeCount * 2.5 && positiveCount > neutralCount) {
         tone = "predominantly positive";
-      } else if (negativeCount > positiveCount * 1.5) {
-        tone = "predominantly negative with signs of struggle";
+        toneKey = "positive";
+      } else if (negativeCount > positiveCount * 1.1) {
+        tone = "predominantly negative, showing signs of stress or struggle";
+        toneKey = "negative";
+      } else if (negativeCount > 0 && negativeCount >= positiveCount * 0.7) {
+        tone = "mixed, leaning somewhat negative — with challenges present";
+        toneKey = "mixed-negative";
       } else {
         tone = "mixed, with both hopeful and challenging moments";
+        toneKey = "mixed";
       }
       
       // Pattern detection
       const patterns = [];
       if (allText.includes('maintained') || allText.includes('maintain')) {
-        patterns.push("consistent effort to maintain the streak");
+        patterns.push("effort to maintain consistency");
       }
-      if (allText.includes('worried') || allText.includes('hard') || allText.includes('tough')) {
-        patterns.push("concerns about external challenges");
+      if (allText.includes('worried') || allText.includes('worry') || allText.includes('hard') || allText.includes('tough') || allText.includes('rough')) {
+        patterns.push("concerns or external pressures weighing on you");
       }
-      if (allText.includes('trying') || allText.includes('keep') || allText.includes('willing')) {
+      if (allText.includes('trying') || allText.includes('keep') || allText.includes('keep going')) {
         patterns.push("persistence despite difficulties");
       }
-      if (allText.includes('work') || allText.includes('academic')) {
-        patterns.push("focus on work/academic responsibilities");
+      if (allText.includes('work') || allText.includes('academic') || allText.includes('study') || allText.includes('exam')) {
+        patterns.push("focus on work or academic responsibilities");
+      }
+      if (allText.includes('tired') || allText.includes('exhausted') || allText.includes('drained') || allText.includes('burnt out')) {
+        patterns.push("signs of fatigue or burnout");
+      }
+      if (allText.includes('happy') || allText.includes('excited') || allText.includes('motivated') || allText.includes('proud')) {
+        patterns.push("moments of genuine positivity and motivation");
+      }
+      
+      // Overall summary line that honestly reflects the tone
+      let overallLine = "";
+      if (toneKey === "positive") {
+        overallLine = `Your reflections carry a genuinely uplifting energy. Keep riding this momentum — it's clear you're in a good headspace.`;
+      } else if (toneKey === "negative") {
+        overallLine = `Your reflections suggest you've been going through a tough stretch. It's okay to acknowledge that things are hard — recognizing it is the first step.`;
+      } else if (toneKey === "mixed-negative") {
+        overallLine = `Your reflections show a mix of effort and strain. While you're pushing through, there are signs that things have been weighing on you — don't ignore those feelings.`;
+      } else {
+        overallLine = `Your reflections show a balanced journey — some days better than others. Stay consistent and keep checking in with yourself.`;
       }
       
       // Build summary
@@ -91,7 +203,7 @@ Emotional Tone: ${tone.charAt(0).toUpperCase() + tone.slice(1)}
 Key Patterns:
 ${patterns.length > 0 ? patterns.map(p => `• ${p.charAt(0).toUpperCase() + p.slice(1)}`).join('\n') : '• No specific patterns detected'}
 
-Overall: You've documented ${reflections.length} reflections showing a journey with ups and downs. The entries reveal both determination to maintain your streak and acknowledgment of challenges faced along the way.
+Overall (${reflections.length} reflection${reflections.length !== 1 ? 's' : ''} analyzed): ${overallLine}
 `.trim();
 
       console.log("Summary generated successfully!");
