@@ -217,18 +217,21 @@ async function migrateLocalStorageReflections(uid) {
   const keysToMigrate = Object.keys(localStorage).filter(k => k.startsWith("reflection-"));
   if (keysToMigrate.length === 0) return;
 
-  const batch = db.batch();
+  const reflectionsMap = {};
   keysToMigrate.forEach(key => {
     const text = localStorage.getItem(key);
-    if (!text || !text.trim()) return;
-    const dateKey = key.replace("reflection-", "");
-    const docRef = db.collection("users").doc(uid).collection("reflections").doc(dateKey);
-    batch.set(docRef, { text }, { merge: true });
+    if (text && text.trim()) {
+      const dKey = key.replace("reflection-", "");
+      reflectionsMap[dKey] = text;
+    }
   });
 
-  await batch.commit();
+  if (Object.keys(reflectionsMap).length > 0) {
+    await db.collection("users").doc(uid).set({ reflections: reflectionsMap }, { merge: true });
+    console.log(`Migrated ${Object.keys(reflectionsMap).length} reflection(s) to Firestore map.`);
+  }
+  
   keysToMigrate.forEach(key => localStorage.removeItem(key));
-  console.log(`Migrated ${keysToMigrate.length} reflection(s) from localStorage to Firestore.`);
 }
 
 markBtn.onclick = async () => {
@@ -265,8 +268,9 @@ async function openReflection(date) {
   reflectionModal.style.display = "flex";
 
   const uid = auth.currentUser.uid;
-  const doc = await db.collection("users").doc(uid).collection("reflections").doc(dateKey(date)).get();
-  reflectionText.value = doc.exists ? (doc.data().text || "") : "";
+  const snap = await db.collection("users").doc(uid).get();
+  const reflections = snap.data()?.reflections || {};
+  reflectionText.value = reflections[dateKey(date)] || "";
 
   const isToday = dateKey(date) === dateKey(todayDate());
   reflectionText.disabled = !isToday;
@@ -275,7 +279,10 @@ async function openReflection(date) {
 
 saveBtn.onclick = async () => {
   const uid = auth.currentUser.uid;
-  await db.collection("users").doc(uid).collection("reflections").doc(dateKey(activeDate)).set({ text: reflectionText.value });
+  const dKey = dateKey(activeDate);
+  await db.collection("users").doc(uid).set({
+    reflections: { [dKey]: reflectionText.value }
+  }, { merge: true });
   closeOverlays();
 };
 
@@ -415,20 +422,22 @@ resetBtn.onclick = async () => {
 
 async function getReflectionsByDateRange(startDate, endDate) {
   const uid = auth.currentUser.uid;
+  const snap = await db.collection("users").doc(uid).get();
+  const allReflections = snap.data()?.reflections || {};
 
   const startKey = dateKey(new Date(startDate));
   const endKey = dateKey(new Date(endDate));
 
-  const snap = await db.collection("users").doc(uid).collection("reflections")
-    .where(firebase.firestore.FieldPath.documentId(), ">=", startKey)
-    .where(firebase.firestore.FieldPath.documentId(), "<=", endKey)
-    .get();
+  const reflections = [];
+  for (let dKey in allReflections) {
+    if (dKey >= startKey && dKey <= endKey) {
+      if (allReflections[dKey] && allReflections[dKey].trim()) {
+        reflections.push(allReflections[dKey]);
+      }
+    }
+  }
 
-  const reflections = snap.docs
-    .map(d => d.data().text)
-    .filter(t => t && t.trim());
-
-  console.log("Reflections found in Firestore:", reflections.length);
+  console.log("Reflections found in Firestore map:", reflections.length);
   return reflections;
 }
 
