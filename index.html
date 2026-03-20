@@ -208,7 +208,28 @@ auth.onAuthStateChanged(async user => {
 
   currentStreak = snap.data().streak;
   streakDisplay.innerText = `Current streak: ${currentStreak} days`;
+
+  // One-time migration: move any localStorage reflections -> Firestore
+  await migrateLocalStorageReflections(user.uid);
 });
+
+async function migrateLocalStorageReflections(uid) {
+  const keysToMigrate = Object.keys(localStorage).filter(k => k.startsWith("reflection-"));
+  if (keysToMigrate.length === 0) return;
+
+  const batch = db.batch();
+  keysToMigrate.forEach(key => {
+    const text = localStorage.getItem(key);
+    if (!text || !text.trim()) return;
+    const dateKey = key.replace("reflection-", "");
+    const docRef = db.collection("users").doc(uid).collection("reflections").doc(dateKey);
+    batch.set(docRef, { text }, { merge: true });
+  });
+
+  await batch.commit();
+  keysToMigrate.forEach(key => localStorage.removeItem(key));
+  console.log(`Migrated ${keysToMigrate.length} reflection(s) from localStorage to Firestore.`);
+}
 
 markBtn.onclick = async () => {
   const ref = db.collection("users").doc(auth.currentUser.uid);
@@ -230,26 +251,31 @@ markBtn.onclick = async () => {
   streakDisplay.innerText = `Current streak: ${streak} days`;
 };
 
-reflectBtn.onclick = () => {
+reflectBtn.onclick = async () => {
   const today = todayDate();
   calendarYear = today.getFullYear();
   calendarMonth = today.getMonth();
-  openReflection(today);
+  await openReflection(today);
 };
 
-function openReflection(date) {
+async function openReflection(date) {
   activeDate = date;
-  reflectionText.value = localStorage.getItem("reflection-" + dateKey(date)) || "";
+  reflectionText.value = "";
+  reflectionText.disabled = true;
+  reflectionModal.style.display = "flex";
+
+  const uid = auth.currentUser.uid;
+  const doc = await db.collection("users").doc(uid).collection("reflections").doc(dateKey(date)).get();
+  reflectionText.value = doc.exists ? (doc.data().text || "") : "";
 
   const isToday = dateKey(date) === dateKey(todayDate());
   reflectionText.disabled = !isToday;
   saveBtn.style.display = isToday ? "block" : "none";
-
-  reflectionModal.style.display = "flex";
 }
 
-saveBtn.onclick = () => {
-  localStorage.setItem("reflection-" + dateKey(activeDate), reflectionText.value);
+saveBtn.onclick = async () => {
+  const uid = auth.currentUser.uid;
+  await db.collection("users").doc(uid).collection("reflections").doc(dateKey(activeDate)).set({ text: reflectionText.value });
   closeOverlays();
 };
 
@@ -343,9 +369,9 @@ async function renderCalendar() {
       cell.classList.add("past");
     } else {
       cell.classList.add("active");
-      cell.onclick = () => {
+      cell.onclick = async () => {
         calendarOverlay.style.display = "none";
-        openReflection(date);
+        await openReflection(date);
       };
     }
     calendarGrid.appendChild(cell);
@@ -387,30 +413,22 @@ resetBtn.onclick = async () => {
 
 /* ✅ AI SUMMARY WITH CHART & DATE RANGE FILTERING */
 
-function getReflectionsByDateRange(startDate, endDate) {
-  const reflections = [];
-  
-  const current = new Date(startDate);
-  current.setHours(0,0,0,0);
-  
-  const end = new Date(endDate);
-  end.setHours(0,0,0,0);
-  
-  console.log("Getting reflections from", dateKey(current), "to", dateKey(end));
-  
-  while (current <= end) {
-    const key = "reflection-" + dateKey(current);
-    const text = localStorage.getItem(key);
-    
-    console.log("Checking", key, "->", text ? "FOUND" : "NOT FOUND");
-    
-    if (text && text.trim()) {
-      reflections.push(text);
-    }
-    current.setDate(current.getDate() + 1);
-  }
-  
-  console.log("Total reflections found:", reflections.length);
+async function getReflectionsByDateRange(startDate, endDate) {
+  const uid = auth.currentUser.uid;
+
+  const startKey = dateKey(new Date(startDate));
+  const endKey = dateKey(new Date(endDate));
+
+  const snap = await db.collection("users").doc(uid).collection("reflections")
+    .where(firebase.firestore.FieldPath.documentId(), ">=", startKey)
+    .where(firebase.firestore.FieldPath.documentId(), "<=", endKey)
+    .get();
+
+  const reflections = snap.docs
+    .map(d => d.data().text)
+    .filter(t => t && t.trim());
+
+  console.log("Reflections found in Firestore:", reflections.length);
   return reflections;
 }
 
@@ -548,7 +566,7 @@ async function loadSummary() {
       return;
     }
     
-    const reflections = getReflectionsByDateRange(startDate, endDate);
+    const reflections = await getReflectionsByDateRange(startDate, endDate);
     
     if (reflections.length === 0) {
       document.getElementById("summaryText").innerHTML = "<p>No reflections found in the selected date range!</p>";
