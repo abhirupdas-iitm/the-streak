@@ -25,9 +25,6 @@ exports.summarizeReflections = onCall(
     }
 
     try {
-      // Simple rule-based analysis
-      const allText = reflections.join(" ").toLowerCase();
-
       // ── Positive: only clearly upbeat, energetic, or affirming expressions ──
       const positiveWords = [
         'happy', 'excited', 'amazing', 'wonderful', 'excellent', 'love', 'loved',
@@ -38,34 +35,31 @@ exports.summarizeReflections = onCall(
         'brilliant', 'delighted', 'ecstatic', 'elated', 'enthusiastic', 'hopeful',
         'pleased', 'relieved', 'satisfied', 'calm', 'focused', 'clear-headed',
         'on track', 'making progress', 'doing well', 'going well', 'feeling good',
-        'feeling great', 'couldn\'t be better', 'killing it'
+        'feeling great', "couldn't be better", 'killing it'
       ];
 
-      // ── Negative single words ──
+      // ── Negative single words: only clearly distressed / unambiguous terms ──
+      // Removed common ambiguous words: hard, tired, low, off, alone, lost, weak,
+      // ill, sick, uncertain, doubt, broken, bored, mediocre, blah, meh, etc.
       const negativeWords = [
-        'tough', 'hard', 'worried', 'worry', 'worrying', 'sad', 'difficult',
-        'struggle', 'struggling', 'anxious', 'anxiety', 'stressed', 'stress',
-        'overwhelmed', 'bad', 'terrible', 'hate', 'hated', 'frustrated', 'frustrating',
-        'frustration', 'worst', 'awful', 'horrible', 'tired', 'exhausted', 'drained',
-        'burnout', 'lost', 'confused', 'hopeless', 'miserable', 'angry', 'upset',
-        'disappointed', 'disappointing', 'disappointment', 'failing', 'failed', 'failure',
-        'behind', 'unmotivated', 'demotivated', 'low', 'depressed', 'depression',
-        'bleak', 'rough', 'pain', 'painful', 'regret', 'regretted', 'embarrassed',
-        'shame', 'ashamed', 'guilty', 'guilt', 'irritated', 'irritating', 'annoyed',
-        'annoying', 'lonely', 'alone', 'isolated', 'helpless', 'powerless', 'stuck',
-        'trapped', 'overwhelm', 'dread', 'dreading', 'afraid', 'fear', 'scared',
-        'nervous', 'restless', 'unsatisfied', 'unfulfilled', 'unhappy', 'unproductive',
-        'procrastinated', 'procrastinating', 'procrastination', 'lazy', 'sluggish',
-        'sluggishness', 'lethargic', 'lethargy', 'unwell', 'sick', 'ill', 'weak',
-        'wasted', 'useless', 'pointless', 'meaningless', 'worthless', 'insecure',
-        'uncertain', 'doubt', 'doubtful', 'distracted', 'demotivating', 'off',
-        'numb', 'empty', 'hollow', 'disconnected', 'unmotivating', 'struggling',
-        'difficult', 'falling', 'broke', 'broken', 'shattered', 'overwhelmingly',
-        'crying', 'cried', 'tears', 'disappointingly', 'unfortunately', 'unfortunately',
-        'neglected', 'neglect', 'ignored', 'wasted', 'regretting', 'regretful',
-        'mediocre', 'meh', 'blah', 'gloomy', 'moody', 'irritable', 'grumpy',
-        'apathetic', 'apathy', 'indifferent', 'bored', 'boring', 'stagnant',
-        'stagnating', 'going nowhere', 'running low', 'running on empty', 'out of energy'
+        'worried', 'worry', 'worrying', 'sad', 'struggle', 'struggling',
+        'anxious', 'anxiety', 'stressed', 'stress', 'overwhelmed', 'terrible',
+        'hate', 'hated', 'frustrated', 'frustrating', 'frustration', 'worst',
+        'awful', 'horrible', 'exhausted', 'drained', 'burnout', 'hopeless',
+        'miserable', 'angry', 'upset', 'disappointed', 'disappointing',
+        'disappointment', 'failing', 'failed', 'failure', 'unmotivated',
+        'demotivated', 'depressed', 'depression', 'bleak', 'painful',
+        'regret', 'regretted', 'embarrassed', 'shame', 'ashamed', 'guilty',
+        'guilt', 'irritated', 'irritating', 'annoyed', 'annoying', 'isolated',
+        'helpless', 'powerless', 'stuck', 'trapped', 'overwhelm', 'dread',
+        'dreading', 'afraid', 'scared', 'unsatisfied', 'unfulfilled', 'unhappy',
+        'unproductive', 'procrastinated', 'procrastinating', 'procrastination',
+        'lethargic', 'lethargy', 'unwell', 'wasted', 'useless', 'pointless',
+        'meaningless', 'worthless', 'insecure', 'distracted', 'demotivating',
+        'numb', 'empty', 'hollow', 'disconnected', 'unmotivating', 'shattered',
+        'crying', 'cried', 'tears', 'disappointingly', 'neglected', 'neglect',
+        'regretting', 'regretful', 'gloomy', 'apathetic', 'apathy', 'stagnant',
+        'stagnating'
       ];
 
       // ── Negative multi-word phrases (matched with plain includes) ──
@@ -73,15 +67,14 @@ exports.summarizeReflections = onCall(
         'falling apart', 'burnt out', 'burned out', 'not good', 'not great',
         'not okay', 'not fine', 'not well', 'not doing well', 'not feeling well',
         'not feeling great', 'not feeling good', 'not motivated', 'not productive',
-        'can\'t focus', 'cannot focus', 'couldn\'t focus', 'can\'t concentrate',
-        "couldn't sleep", "can't sleep", 'didn\'t do much', 'didn\'t do anything',
-        'didn\'t feel like', 'don\'t feel like', 'not in the mood', 'off day',
+        "can't focus", 'cannot focus', "couldn't focus", "can't concentrate",
+        "couldn't sleep", "can't sleep", "didn't do much", "didn't do anything",
+        "didn't feel like", "don't feel like", 'not in the mood',
         'bad day', 'rough day', 'hard day', 'tough day', 'difficult day',
         'worst day', 'terrible day', 'feel like giving up', 'want to give up',
-        'wanted to give up', 'gave up', 'don\'t care', 'don\'t want to',
-        'didn\'t want to', 'no energy', 'very tired', 'really tired', 'so tired',
-        'barely managed', 'barely did', 'barely keeping', 'hard to stay',
-        'hard to keep', 'hard to get', 'hard to focus', 'hard to do',
+        'wanted to give up', 'gave up', "don't care", "don't want to",
+        "didn't want to", 'no energy', 'very tired', 'really tired', 'so tired',
+        'barely managed', 'barely did', 'barely keeping',
         'fell behind', 'way behind', 'so behind', 'getting worse', 'feel worse',
         'feeling worse', 'feeling low', 'feeling down', 'feeling bad', 'feeling sad',
         'feeling anxious', 'feeling stressed', 'feeling overwhelmed', 'feeling lost',
@@ -90,14 +83,14 @@ exports.summarizeReflections = onCall(
         'feel horrible', 'feel empty', 'feel hopeless', 'feel numb', 'feel stuck',
         'so stressed', 'very stressed', 'really stressed', 'so anxious',
         'so overwhelmed', 'totally drained', 'completely drained', 'absolutely exhausted',
-        'really struggling', 'really hard', 'really tough', 'really difficult',
-        'not happy', 'not satisfied', 'not enough', 'not doing enough',
+        'really struggling', 'not happy', 'not satisfied', 'not doing enough',
         'wasted the day', 'wasted my day', 'wasted time', 'wasted today',
-        'could have done better', 'could\'ve done better', 'should have done more',
-        'should\'ve done more', 'let myself down', 'let everyone down',
-        'missed the mark', 'didn\'t meet', 'didn\'t hit', 'didn\'t achieve',
-        "wasn't productive", "was not productive", "not my best", "below my best",
-        "off my game", "not at my best", "out of it"
+        'could have done better', "could've done better", 'should have done more',
+        "should've done more", 'let myself down', 'let everyone down',
+        'missed the mark', "didn't meet", "didn't hit", "didn't achieve",
+        "wasn't productive", 'was not productive', 'not my best', 'below my best',
+        'off my game', 'not at my best', 'out of it', 'going nowhere',
+        'running on empty', 'out of energy'
       ];
 
       const neutralWords = [
@@ -105,37 +98,45 @@ exports.summarizeReflections = onCall(
         'maintained', 'going', 'expected', 'regular', 'standard', 'so-so', 'decent'
       ];
 
+      // ── Score each reflection individually, then sum ──
+      // This prevents one old bad-day entry from skewing the whole range.
       let positiveCount = 0;
       let negativeCount = 0;
       let neutralCount = 0;
 
-      // Single-word matching via regex word boundaries
-      positiveWords.forEach(word => {
-        if (word.includes(' ')) {
-          // multi-word positive phrases
-          if (allText.includes(word)) positiveCount++;
-        } else {
+      reflections.forEach(reflection => {
+        const text = reflection.toLowerCase();
+        let pos = 0, neg = 0, neu = 0;
+
+        positiveWords.forEach(word => {
+          if (word.includes(' ')) {
+            if (text.includes(word)) pos++;
+          } else {
+            const regex = new RegExp('\\b' + word.replace(/[-']/g, '\\$&') + '\\b', 'gi');
+            const matches = text.match(regex);
+            if (matches) pos += matches.length;
+          }
+        });
+
+        negativeWords.forEach(word => {
           const regex = new RegExp('\\b' + word.replace(/[-']/g, '\\$&') + '\\b', 'gi');
-          const matches = allText.match(regex);
-          if (matches) positiveCount += matches.length;
-        }
-      });
+          const matches = text.match(regex);
+          if (matches) neg += matches.length;
+        });
 
-      negativeWords.forEach(word => {
-        const regex = new RegExp('\\b' + word.replace(/[-']/g, '\\$&') + '\\b', 'gi');
-        const matches = allText.match(regex);
-        if (matches) negativeCount += matches.length;
-      });
+        negativePhrases.forEach(phrase => {
+          if (text.includes(phrase)) neg += 2;
+        });
 
-      // Multi-word negative phrases — use plain includes for reliability
-      negativePhrases.forEach(phrase => {
-        if (allText.includes(phrase)) negativeCount += 2; // weight phrases more heavily
-      });
+        neutralWords.forEach(word => {
+          const regex = new RegExp('\\b' + word.replace(/[-']/g, '\\$&') + '\\b', 'gi');
+          const matches = text.match(regex);
+          if (matches) neu += matches.length;
+        });
 
-      neutralWords.forEach(word => {
-        const regex = new RegExp('\\b' + word.replace(/[-']/g, '\\$&') + '\\b', 'gi');
-        const matches = allText.match(regex);
-        if (matches) neutralCount += matches.length;
+        positiveCount += pos;
+        negativeCount += neg;
+        neutralCount += neu;
       });
 
       // Ensure at least some distribution
@@ -149,7 +150,7 @@ exports.summarizeReflections = onCall(
       // Mixed-negative: kicks in at near-parity (negative ≥ 70% of positive)
       let tone = "";
       let toneKey = "";
-      if (positiveCount > negativeCount * 2.5 && positiveCount > neutralCount) {
+      if (positiveCount > negativeCount * 1.5 && positiveCount > neutralCount) {
         tone = "predominantly positive";
         toneKey = "positive";
       } else if (negativeCount > positiveCount * 1.1) {
