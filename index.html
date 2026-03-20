@@ -428,9 +428,16 @@ async function renderCalendar() {
   calendarGrid.innerHTML = "";
 
   const snap = await db.collection("users").doc(auth.currentUser.uid).get();
-  const allReflections = snap.data()?.reflections || {};
+  const data = snap.data();
+  const allReflections = data?.reflections || {};
+  const streak = data?.streak || 0;
 
   const today = todayDate();
+  // Streak start = today minus streak days + 1
+  const streakStart = new Date(today);
+  streakStart.setDate(today.getDate() - streak + 1);
+  streakStart.setHours(0,0,0,0);
+
   const daysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
 
   for (let d = 1; d <= daysInMonth; d++) {
@@ -441,13 +448,17 @@ async function renderCalendar() {
     cell.className = "calendar-day";
     cell.innerText = d;
 
-    if (date > today) {
+    const inStreakWindow = date >= streakStart && date <= today;
+
+    if (!inStreakWindow) {
+      // Outside streak window: grey, not clickable
       cell.classList.add("past");
     } else {
+      // Inside streak window: green circle, clickable
       cell.classList.add("active");
       const dKey = dateKey(date);
       if (allReflections[dKey] && allReflections[dKey].trim()) {
-        cell.style.background = "rgba(0,255,170,0.25)";
+        cell.style.background = "rgba(0,255,170,0.3)";
         cell.style.fontWeight = "bold";
       }
       cell.onclick = async () => {
