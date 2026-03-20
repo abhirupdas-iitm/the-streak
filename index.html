@@ -113,15 +113,18 @@ const db = firebase.firestore();
 const functions = firebase.app().functions("us-central1");
 
 function logDebug(msg, error = null) {
+  if (error) {
+    window.console.error(msg, error);
+  } else {
+    window.console.log(msg);
+  }
   const debugDiv = document.getElementById("debugConsole");
+  if (!debugDiv) return;
   const entry = document.createElement("div");
   entry.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
   if (error) {
     entry.style.color = "#ff4444";
     entry.innerText += ` - ERROR: ${error.message || error}`;
-    window.console.error(msg, error);
-  } else {
-    window.console.log(msg);
   }
   debugDiv.appendChild(entry);
   debugDiv.scrollTop = debugDiv.scrollHeight;
