@@ -428,12 +428,9 @@ async function renderCalendar() {
   calendarGrid.innerHTML = "";
 
   const snap = await db.collection("users").doc(auth.currentUser.uid).get();
-  const streak = snap.data().streak;
+  const allReflections = snap.data()?.reflections || {};
 
   const today = todayDate();
-  const start = new Date(today);
-  start.setDate(today.getDate() - streak + 1);
-
   const daysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
 
   for (let d = 1; d <= daysInMonth; d++) {
@@ -444,10 +441,15 @@ async function renderCalendar() {
     cell.className = "calendar-day";
     cell.innerText = d;
 
-    if (date < start || date > today) {
+    if (date > today) {
       cell.classList.add("past");
     } else {
       cell.classList.add("active");
+      const dKey = dateKey(date);
+      if (allReflections[dKey] && allReflections[dKey].trim()) {
+        cell.style.background = "rgba(0,255,170,0.25)";
+        cell.style.fontWeight = "bold";
+      }
       cell.onclick = async () => {
         calendarOverlay.style.display = "none";
         await openReflection(date);
