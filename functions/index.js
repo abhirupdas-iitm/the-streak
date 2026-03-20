@@ -165,6 +165,7 @@ exports.summarizeReflections = onCall(
       }
       
       // Pattern detection
+      const allText = reflections.join(' ').toLowerCase();
       const patterns = [];
       if (allText.includes('maintained') || allText.includes('maintain')) {
         patterns.push("effort to maintain consistency");
