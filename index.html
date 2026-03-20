@@ -494,8 +494,18 @@ async function getReflectionsByDateRange(startDate, endDate) {
   const snap = await db.collection("users").doc(uid).get();
   const allReflections = snap.data()?.reflections || {};
 
-  const startKey = dateKey(new Date(startDate));
-  const endKey = dateKey(new Date(endDate));
+  // Fix: parse date strings as LOCAL time (not UTC) to avoid timezone shift
+  // "2026-03-15" parsed by new Date() = UTC midnight = Mar 14 in IST!
+  function parseDateLocal(d) {
+    if (typeof d === "string") {
+      const [y, m, day] = d.split("-").map(Number);
+      return new Date(y, m - 1, day);
+    }
+    return d;
+  }
+
+  const startKey = dateKey(parseDateLocal(startDate));
+  const endKey = dateKey(parseDateLocal(endDate));
 
   const reflections = [];
   for (let dKey in allReflections) {
@@ -585,17 +595,22 @@ function setDateRange(days) {
     start.setDate(today.getDate() - currentStreak + 1);
     startDateInput.valueAsDate = start;
   } else if (days === 'all') {
-    // Find earliest reflection
-    let earliestDate = today;
-    for (let key in localStorage) {
-      if (key.startsWith("reflection-")) {
-        const dateStr = key.replace("reflection-", "");
-        const parts = dateStr.split('-');
-        const date = new Date(parts[0], parts[1] - 1, parts[2]);
-        if (date < earliestDate) earliestDate = date;
-      }
+    // Fix: read earliest reflection from Firestore, not localStorage
+    const uid = auth.currentUser?.uid;
+    if (uid) {
+      db.collection("users").doc(uid).get().then(snap => {
+        const allReflections = snap.data()?.reflections || {};
+        const keys = Object.keys(allReflections).sort();
+        if (keys.length > 0) {
+          const [y, m, d] = keys[0].split("-").map(Number);
+          startDateInput.valueAsDate = new Date(y, m - 1, d);
+        } else {
+          startDateInput.valueAsDate = today;
+        }
+      });
+    } else {
+      startDateInput.valueAsDate = today;
     }
-    startDateInput.valueAsDate = earliestDate;
   } else {
     const start = new Date(today);
     start.setDate(today.getDate() - days + 1);
@@ -636,8 +651,15 @@ async function loadSummary() {
       return;
     }
     
-    const startDate = new Date(startDateInput.value);
-    const endDate = new Date(endDateInput.value);
+    // Fix: parse date input values as LOCAL time, not UTC
+    // input.value is "YYYY-MM-DD" — new Date() treats it as UTC, causing -1 day in IST
+    function parseDateInputLocal(val) {
+      const [y, m, d] = val.split("-").map(Number);
+      return new Date(y, m - 1, d);
+    }
+
+    const startDate = parseDateInputLocal(startDateInput.value);
+    const endDate = parseDateInputLocal(endDateInput.value);
     
     if (startDate > endDate) {
       alert("Start date must be before end date!");
