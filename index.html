@@ -112,7 +112,7 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 const functions = firebase.app().functions("us-central1");
 
-function logDebug(msg, error = null) {
+async function logDebug(msg, error = null) {
   if (error) {
     window.console.error(msg, error);
   } else {
@@ -128,6 +128,20 @@ function logDebug(msg, error = null) {
   }
   debugDiv.appendChild(entry);
   debugDiv.scrollTop = debugDiv.scrollHeight;
+
+  try {
+    if (typeof db !== "undefined" && db) {
+      const logEntry = {
+        message: msg,
+        error: error ? (error.message || String(error)) : null,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        userId: (typeof auth !== "undefined" && auth?.currentUser?.uid) ? auth.currentUser.uid : "unauthenticated"
+      };
+      await db.collection("debug_logs").add(logEntry);
+    }
+  } catch (err) {
+    window.console.error("Failed to save log to backend:", err);
+  }
 }
 
 logDebug("App initialized");
@@ -720,7 +734,7 @@ async function loadSummary() {
 }
 </script>
 
-<div id="debugConsole" style="position:fixed; bottom:0; left:0; width:100%; max-height:150px; overflow-y:auto; background:rgba(0,0,0,0.8); color:#00ff00; font-family:monospace; font-size:10px; padding:10px; z-index:9999; border-top:1px solid #00ff00; pointer-events:none;">
+<div id="debugConsole" style="position:fixed; bottom:0; left:0; width:100%; max-height:150px; overflow-y:auto; background:rgba(0,0,0,0.8); color:#00ff00; font-family:inherit; font-size:14px; font-weight:bold; padding:10px; z-index:9999; border-top:1px solid #00ff00; pointer-events:none;">
   DEBUG LOGS (Will show errors here):<br>
 </div>
 
