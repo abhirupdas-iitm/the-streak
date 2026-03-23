@@ -452,6 +452,19 @@ async function renderCalendar() {
   streakStart.setDate(today.getDate() - streak + 1);
   streakStart.setHours(0,0,0,0);
 
+  // Extend streak window backwards to group recent continuous reflections
+  let extendedStart = new Date(streakStart);
+  while (true) {
+    let prev = new Date(extendedStart);
+    prev.setDate(prev.getDate() - 1);
+    let pk = dateKey(prev);
+    if (allReflections[pk] && allReflections[pk].trim()) {
+      extendedStart.setDate(extendedStart.getDate() - 1);
+    } else {
+      break;
+    }
+  }
+
   const daysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
 
   for (let d = 1; d <= daysInMonth; d++) {
@@ -462,24 +475,26 @@ async function renderCalendar() {
     cell.className = "calendar-day";
     cell.innerText = d;
 
-    const inStreakWindow = date >= streakStart && date <= today;
+    const inVisibleWindow = date >= extendedStart && date <= today;
     const dKey = dateKey(date);
     const hasReflection = allReflections[dKey] && allReflections[dKey].trim();
 
-    if (inStreakWindow) {
+    if (inVisibleWindow) {
       cell.classList.add("active");
+      if (hasReflection) {
+        cell.style.background = "rgba(0,255,170,0.3)";
+        cell.style.fontWeight = "bold";
+      }
     } else {
       cell.classList.add("past");
+      if (hasReflection) {
+        // "greyed out since discontinued, though it does have reflections"
+        cell.style.background = "rgba(255,255,255,0.05)"; // very faint indication
+        cell.style.cursor = "pointer";
+      }
     }
 
-    if (hasReflection) {
-      cell.style.background = "rgba(0,255,170,0.3)";
-      cell.style.fontWeight = "bold";
-      cell.style.color = "#00ffae";
-      cell.style.cursor = "pointer";
-    }
-
-    if (inStreakWindow || hasReflection) {
+    if (inVisibleWindow || hasReflection) {
       cell.onclick = async () => {
         calendarOverlay.style.display = "none";
         await openReflection(date);
