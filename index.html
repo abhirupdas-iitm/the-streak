@@ -147,6 +147,7 @@ async function logDebug(msg, error = null) {
 logDebug("App initialized");
 
 const summarizeReflections = functions.httpsCallable("summarizeReflections");
+const notifyUnauthorizedAccess = functions.httpsCallable("notifyUnauthorizedAccess");
 
 const authSection = document.getElementById("auth-section");
 const appSection = document.getElementById("app-section");
@@ -165,7 +166,11 @@ signupBtn.onclick = async () => {
     await auth.createUserWithEmailAndPassword(emailInput.value, passwordInput.value);
     authMessage.innerText = "Account created successfully!";
   } catch (err) {
-    authMessage.innerText = err.message;
+    if (err.code === "auth/email-already-in-use") {
+      authMessage.innerText = "This email ID is already associated with an account. Please log in instead.";
+    } else {
+      authMessage.innerText = err.message;
+    }
   }
 };
 
@@ -174,7 +179,22 @@ loginBtn.onclick = async () => {
     await auth.signInWithEmailAndPassword(emailInput.value, passwordInput.value);
     authMessage.innerText = "";
   } catch (err) {
-    authMessage.innerText = err.message;
+    if (
+      err.code === "auth/wrong-password" ||
+      err.code === "auth/invalid-credential" ||
+      err.code === "auth/invalid-login-credentials" ||
+      (err.message && err.message.includes("INVALID_LOGIN_CREDENTIALS"))
+    ) {
+      authMessage.innerText = "Entered password is incorrect. You have been notified via email.";
+      // Send security alert email
+      try {
+        await notifyUnauthorizedAccess({ email: emailInput.value });
+      } catch (notifyErr) {
+        logDebug("Failed to send security notification", notifyErr);
+      }
+    } else {
+      authMessage.innerText = err.message;
+    }
   }
 };
 

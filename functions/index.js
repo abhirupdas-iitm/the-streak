@@ -1,4 +1,58 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const nodemailer = require("nodemailer");
+
+// ── Security alert: notify user of unauthorized login attempt ──
+exports.notifyUnauthorizedAccess = onCall(async (request) => {
+  const email = request.data?.email;
+  if (!email || typeof email !== "string") {
+    throw new HttpsError("invalid-argument", "A valid email is required.");
+  }
+
+  // Use Firebase Functions config or environment variables for SMTP credentials.
+  // Set with:  firebase functions:secrets:set GMAIL_USER  and  GMAIL_PASS
+  const gmailUser = process.env.GMAIL_USER;
+  const gmailPass = process.env.GMAIL_PASS;
+
+  if (!gmailUser || !gmailPass) {
+    console.error("GMAIL_USER / GMAIL_PASS secrets not configured.");
+    throw new HttpsError("internal", "Email service not configured.");
+  }
+
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: { user: gmailUser, pass: gmailPass },
+  });
+
+  const mailOptions = {
+    from: `"The Streak Tracker" <${gmailUser}>`,
+    to: email,
+    subject: "⚠️ Security Alert — Unauthorized Access Attempt",
+    text: `Hi,\n\nSomeone tried to access your Streak Tracker account (${email}) with an incorrect password.\n\nIf this was you, you can ignore this message. If not, we recommend changing your password immediately using the "Forgot Password?" option on the login page.\n\nStay safe,\nThe Streak Tracker`,
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:24px;border:1px solid #ddd;border-radius:8px;">
+        <h2 style="color:#e53e3e;">⚠️ Security Alert</h2>
+        <p>Someone tried to get access to your <strong>Streak Tracker</strong> account (<code>${email}</code>) using an incorrect password.</p>
+        <p>If this was <strong>you</strong>, you can safely ignore this message.</p>
+        <p>If this was <strong>not you</strong>, please reset your password immediately:</p>
+        <p style="text-align:center;">
+          <a href="https://the-streak2.firebaseapp.com" style="background:#e53e3e;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:bold;">Reset My Password</a>
+        </p>
+        <hr style="margin:24px 0;border:none;border-top:1px solid #eee;">
+        <p style="font-size:12px;color:#999;">This is an automated security notification from The Streak Tracker.</p>
+      </div>
+    `,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log(`Security alert sent to ${email}`);
+    return { success: true };
+  } catch (err) {
+    console.error("Failed to send security alert email:", err);
+    throw new HttpsError("internal", "Failed to send notification email.");
+  }
+});
+
 
 exports.summarizeReflections = onCall(
   async (request) => {
