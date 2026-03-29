@@ -1,17 +1,20 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { defineSecret } = require("firebase-functions/params");
 const nodemailer = require("nodemailer");
 
+const GMAIL_USER = defineSecret("GMAIL_USER");
+const GMAIL_PASS = defineSecret("GMAIL_PASS");
+
 // ── Security alert: notify user of unauthorized login attempt ──
-exports.notifyUnauthorizedAccess = onCall(async (request) => {
+exports.notifyUnauthorizedAccess = onCall({ secrets: [GMAIL_USER, GMAIL_PASS] }, async (request) => {
   const email = request.data?.email;
   if (!email || typeof email !== "string") {
     throw new HttpsError("invalid-argument", "A valid email is required.");
   }
 
-  // Use Firebase Functions config or environment variables for SMTP credentials.
-  // Set with:  firebase functions:secrets:set GMAIL_USER  and  GMAIL_PASS
-  const gmailUser = process.env.GMAIL_USER;
-  const gmailPass = process.env.GMAIL_PASS;
+  // Use Firebase Secret Manager secrets defined at the top of this file.
+  const gmailUser = GMAIL_USER.value();
+  const gmailPass = GMAIL_PASS.value();
 
   if (!gmailUser || !gmailPass) {
     console.error("GMAIL_USER / GMAIL_PASS secrets not configured.");
