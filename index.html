@@ -659,12 +659,15 @@ function setDateRange(days) {
   const endDateInput = document.getElementById('endDate');
   const startDateInput = document.getElementById('startDate');
   
-  endDateInput.valueAsDate = today;
+  // Use .value with dateKey() strings instead of .valueAsDate
+  // .valueAsDate interprets dates as UTC, but todayDate() is local midnight.
+  // In IST (UTC+5:30), local midnight = previous day in UTC → off-by-one!
+  endDateInput.value = dateKey(today);
   
   if (days === 'streak') {
     const start = new Date(today);
     start.setDate(today.getDate() - currentStreak + 1);
-    startDateInput.valueAsDate = start;
+    startDateInput.value = dateKey(start);
   } else if (days === 'all') {
     // Fix: read earliest reflection from Firestore, not localStorage
     const uid = auth.currentUser?.uid;
@@ -673,19 +676,18 @@ function setDateRange(days) {
         const allReflections = snap.data()?.reflections || {};
         const keys = Object.keys(allReflections).sort();
         if (keys.length > 0) {
-          const [y, m, d] = keys[0].split("-").map(Number);
-          startDateInput.valueAsDate = new Date(y, m - 1, d);
+          startDateInput.value = keys[0]; // already YYYY-MM-DD
         } else {
-          startDateInput.valueAsDate = today;
+          startDateInput.value = dateKey(today);
         }
       });
     } else {
-      startDateInput.valueAsDate = today;
+      startDateInput.value = dateKey(today);
     }
   } else {
     const start = new Date(today);
     start.setDate(today.getDate() - days + 1);
-    startDateInput.valueAsDate = start;
+    startDateInput.value = dateKey(start);
   }
 }
 
