@@ -336,19 +336,233 @@ button:hover {
   color: #00ff99;
 }
 
-/* Mobile responsiveness */
-@media (max-width: 600px) {
+/* ========== MOBILE RESPONSIVENESS ========== */
+
+/* Tablets and small laptops */
+@media (max-width: 768px) {
+  .container {
+    margin-top: 40px;
+    padding: 0 20px;
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .actions button {
+    flex: 1 1 calc(50% - 12px);
+    min-width: 120px;
+    font-size: 13px;
+    padding: 10px 8px;
+  }
+
+  .calendar-grid {
+    grid-template-columns: repeat(7, 36px);
+    gap: 6px;
+  }
+
+  .calendar-day {
+    width: 36px;
+    height: 36px;
+    font-size: 13px;
+  }
+}
+
+/* Phones */
+@media (max-width: 480px) {
+  body {
+    align-items: flex-start;
+    padding: 0;
+  }
+
+  .container {
+    margin-top: 30px;
+    padding: 0 16px;
+    max-width: 100%;
+  }
+
+  .container h2 {
+    font-size: 1.4em;
+    margin-bottom: 12px;
+  }
+
+  /* Auth inputs */
+  input {
+    font-size: 16px; /* prevents iOS zoom on focus */
+    padding: 12px;
+  }
+
+  /* All buttons: larger tap targets */
+  button {
+    padding: 12px 14px;
+    font-size: 14px;
+    margin: 5px 3px;
+  }
+
+  /* Action buttons stack in 2-column grid */
+  .actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 14px;
+  }
+
+  .actions button {
+    width: 100%;
+    margin: 0;
+    padding: 12px 6px;
+    font-size: 13px;
+  }
+
+  /* Streak display */
+  #streakDisplay {
+    font-size: 1.1em;
+    padding: 8px 0;
+  }
+
+  /* Modals take up more space on mobile */
+  .modal-box {
+    width: 94%;
+    max-width: none;
+    padding: 16px;
+  }
+
+  #reflectionText {
+    font-size: 15px;
+    min-height: 160px;
+  }
+
+  /* Calendar: fluid grid */
+  .calendar-box {
+    width: 94vw;
+    max-width: none;
+    padding: 14px;
+  }
+
+  .calendar-grid {
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+  }
+
+  .calendar-day {
+    width: auto;
+    height: 36px;
+    font-size: 12px;
+    border-radius: 8px;
+  }
+
+  .calendar-header {
+    gap: 4px;
+    margin-bottom: 10px;
+  }
+
+  .calendar-selectors select {
+    font-size: 13px;
+    padding: 4px 6px;
+  }
+
+  .calendar-header button {
+    padding: 6px 10px;
+    font-size: 16px;
+    margin: 0;
+  }
+
+  /* AI Summary modal */
   .summary-box {
-    width: 95%;
-    max-height: 90vh;
+    width: 96%;
+    max-height: 92vh;
+    border-radius: 10px;
   }
-  
+
+  .summary-header {
+    padding: 14px 16px;
+  }
+
+  .summary-header h3 {
+    font-size: 1.15em;
+  }
+
   .summary-content {
-    padding: 20px;
+    padding: 16px;
+    max-height: calc(92vh - 60px);
   }
-  
+
+  /* Date range selector */
+  .date-range-selector {
+    padding: 12px;
+  }
+
+  .date-inputs {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .date-input-group input[type="date"] {
+    font-size: 15px;
+    padding: 10px;
+  }
+
+  .quick-options {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .quick-btn {
+    padding: 10px 8px;
+    font-size: 12px;
+  }
+
+  #applyDateRangeBtn {
+    padding: 12px;
+    font-size: 15px;
+  }
+
+  /* Emotion chart */
   #emotionChart {
     width: 180px;
     height: 200px;
+  }
+
+  .summary-stats p {
+    font-size: 0.88em;
+  }
+
+  .summary-detail {
+    font-size: 0.92em;
+  }
+
+  /* Debug console: smaller on mobile */
+  #debugConsole {
+    max-height: 80px !important;
+    font-size: 11px !important;
+    padding: 6px !important;
+  }
+}
+
+/* Very small phones (e.g. iPhone SE, Galaxy S fold) */
+@media (max-width: 360px) {
+  .container {
+    padding: 0 10px;
+    margin-top: 20px;
+  }
+
+  .actions {
+    grid-template-columns: 1fr;
+  }
+
+  .calendar-day {
+    height: 30px;
+    font-size: 11px;
+  }
+
+  .summary-header h3 {
+    font-size: 1em;
+  }
+
+  .quick-options {
+    grid-template-columns: 1fr;
   }
 }
